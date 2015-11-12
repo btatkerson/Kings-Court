@@ -26,6 +26,7 @@ for i in player:
     for k in color_deck:
         print(k,end=',')
 
+
     print()
 
 while not player[3].card_hand.is_deck_empty():

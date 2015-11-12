@@ -258,6 +258,11 @@ class gameboard():
         if co:
             if self.is_spot_open(x,y) and self.get_spot_number_of_neighbors(x,y) >= 1:
                 if isinstance(card_in_play, card):
+                    if self.get_spot_number_of_neighbors(x,y) == 1:
+                        for i in self.get_spot_neighbor_cards_all(x,y):
+                            if i.get_value() == 12:
+                                return False
+
                     card_val = card_in_play.get_value()
                     for i in self.get_spot_neighbor_cards_sides(x,y):
                         if i.get_value() == card_val:
@@ -375,7 +380,7 @@ class gameboard():
 
     def get_spot_neighbor_cards_all(self, x=None, y=None):
         if self.verify_coordinate(x,y):
-            return self.get_spot_neighbor_cards_corners() + self.get_spot_neighbor_cards_sides()
+            return self.get_spot_neighbor_cards_corners(x,y) + self.get_spot_neighbor_cards_sides(x,y)
         return None
 
     def get_spot_number_of_neighbors(self, x=None, y=None):
