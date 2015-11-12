@@ -113,7 +113,7 @@ class carddeck():
                 
 
     def find_card_by_index(self,index=None,list_of_indices=None):
-        if not index and not list_of_indices:
+        if index==None and not list_of_indices:
             return []
 
         elif type(list_of_indices) == list or type(index) == list:
@@ -230,6 +230,12 @@ class carddeck():
         for i,j in enumerate(self.get_deck()):
             print(i+1,"\b:",j.get_info(1))
 
+    def print_readable_deck_color(self):
+        '''
+        Prints a list to the screen of all the cards in the order they are in the deck
+        '''
+        for i,j in enumerate(self.get_deck()):
+            print(i+1,"\b:",j.get_info_color())
 
     def deal_card_by_index(self,index=None):
         if self.is_deck_empty():

@@ -2,7 +2,7 @@ from carddeck import carddeck, card, random
 from time import time
 
 class gameboard():
-    def __init__(self, large_board=False):
+    def __init__(self, large_board=False, gamemode=0):
         self.game_board = []
         self.GRID_SIZE_LARGE = 7
         self.GRID_SIZE_SMALL = 4
@@ -17,6 +17,7 @@ class gameboard():
         self.MIDDLE_GRID_WIDTH_INDEX = None
 
         self.grid_size = self.GRID_SIZE_SMALL
+        self.GAMEMODE = gamemode
         
         self.game_deck = carddeck(2,0,self.EXTRA_SUIT)
         self.game_deck.deal_card(self.game_deck.find_card([6,7,8,9,10,11]))
@@ -306,7 +307,11 @@ class gameboard():
         return self.game_board
 
     def print_game_board_color(self):
+        count = 0
+        print('  A  B  C  D  E  F  G')
         for i in self.game_board:
+            count+=1
+            print(count,end=' ')
             for j in i:
                 if j == self.get_card_on_spot(self.MIDDLE_GRID_WIDTH_INDEX,self.MIDDLE_GRID_HEIGHT_INDEX):
                     print(j.get_info_color(1) if j else '__', end=' ')
@@ -315,6 +320,19 @@ class gameboard():
             print()
         return 0
 
+    def get_card_slots_for_board_x_broken(self):
+        '''
+        Returns the slots for the board x, but instead of the cards leading from the corners to the king,
+        the cards touching the king are in the far cardinal directions.
+        '''
+        x_point_multipliers = [[1,-1],[1,1],[-1,1],[-1,-1]]
+
+        coordinates=[[0,3],[3,0],[6,3],[3,6]]
+        coordinates+=[[self.MIDDLE_GRID_WIDTH_INDEX+l[0],self.MIDDLE_GRID_HEIGHT_INDEX+l[1]] for l in [[i*k for k in j] for j in x_point_multipliers for i in range(2,self.MIDDLE_GRID_WIDTH_INDEX+1)]]
+
+        return coordinates
+
+
     def get_card_slots_for_board_x(self):
         x_point_multipliers = [[1,-1],[1,1],[-1,1],[-1,-1]]
 
@@ -322,10 +340,17 @@ class gameboard():
 
         return coordinates
 
+    def get_card_slots_for_board_circle(self):
+        coordinates=[[0,3],[3,0],[6,3],[3,6],[0,1],[1,0],[0,5],[1,6],[5,0],[6,1],[6,5],[5,6]]
+
+        return coordinates
+
+
     def set_initial_board(self):
+        board_cards = [self.get_card_slots_for_board_x, self.get_card_slots_for_board_x_broken, self.get_card_slots_for_board_circle][self.GAMEMODE]
         self.game_deck.shuffle_deck()
         self.set_center_king_card()
-        for i in self.get_card_slots_for_board_x():
+        for i in board_cards():
             self.set_card_on_board(self.game_deck.deal_card()[0],i)
 
     def set_center_king_card(self):
@@ -543,7 +568,7 @@ class gameboard():
         return False
 
 
-
+'''
 d=carddeck(0,0)
 test_deck = carddeck(2,0)
 kings_deck = carddeck(0,0)
@@ -566,7 +591,6 @@ print()
 
 #a.set_card_on_board(a.game_kings_deck.find_random_card()[0],a.MIDDLE_GRID_WIDTH_INDEX,a.MIDDLE_GRID_HEIGHT_INDEX)
 
-'''
 for i in range(a.MAX_GRID_WIDTH_INDEX):
     for j in range(a.MAX_GRID_HEIGHT_INDEX):
         if j == i == a.MIDDLE_GRID_HEIGHT_INDEX:
@@ -579,7 +603,6 @@ for i in range(a.MAX_GRID_WIDTH_INDEX):
                 break
             else:
                 test_deck.take_card(temp_card)
-'''
 
 games = 0
 timer = time()
@@ -665,4 +688,4 @@ for i in range(a.MAX_GRID_HEIGHT_INDEX):
 #print(a.game_board)
 print(a.get_card_slots_for_board_x())
 
-
+'''
