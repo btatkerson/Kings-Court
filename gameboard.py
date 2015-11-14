@@ -448,8 +448,20 @@ class gameboard():
 
         return []
 
+    def is_move_possible(self):
+        for i in self.get_cards_not_on_board():
+            for j in self.get_spots_open_on_board():
+                if self.is_legal_to_anchor_card(i,j):
+                    return True
+        return False
+
     def get_cards_not_on_board(self):
-        return list(set.difference(set(self.game_deck.master_deck),set(self.get_cards_on_board())))
+        temp_deck = carddeck(0,0,0)
+        temp_deck.deck = list(set.difference(set(self.game_deck.master_deck),set(self.get_cards_on_board())))
+        temp_deck.sort_deck_by_card_suit()
+        temp_deck.sort_deck_by_card_value()
+        temp_deck.print_readable_deck_color()
+        return temp_deck.deck
 
     def get_cards_on_board(self):
         cards_on_board = []

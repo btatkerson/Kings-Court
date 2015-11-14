@@ -1,3 +1,4 @@
+import random
 from carddeck import carddeck
 from gameboard import gameboard
 
@@ -5,6 +6,7 @@ class game_player():
     def __init__(self,name=None, human_player=None, main_gameboard=None):
         self.name = None
         self.human_player = True if human_player else False 
+        self.set_computer_level()
         self.last_score = 0
         self.score = 0
         self.card_hand = carddeck(0,0)
@@ -97,10 +99,144 @@ class game_player():
         else:
             return 0
 
-
-    def best_possible_move_set(self):
+    def list_of_possible_scores(self):
         '''
-        Returns a list of lists in the form of [card, position]
+        Returns a list of only the score values that can be potentially made
+        This is used for mathematical purposes
+        '''
+        all_score_list = []
+        temp_move_set = self.possible_move_set()
+        for i in temp_move_set.keys():
+            all_score_list+=len(temp_move_set[i])*[i]
+
+        return all_score_list
+
+    def average_of_possible_scores(self):
+        score_list = self.list_of_possible_scores()
+        if len(score_list) > 0:
+            return sum(score_list)/len(score_list)
+
+    def standard_deviation_of_possible_scores(self):
+        average = self.average_of_possible_scores()
+        score_list = self.list_of_possible_scores()
+        devs = 0
+        if len(score_list) > 0:
+            for i in score_list:
+                devs += (i-average)**2
+        else:
+            return 0
+
+        return (devs/len(score_list))**.5
+
+    def set_computer_level(self,level=3):
+        if 0 <= level % 6 <= 5:
+            self.computer_level = level % 6
+            return 1
+        else:
+            self.computer_level = 3
+        return 0
+
+
+    def get_computer_level(self):
+        return self.computer_level
+            
+    
+    def get_computer_level_stats(self):
+        levels = {0:(.254,1.28,0),
+                  1:(.385,1.645,3),
+                  2:(.385,1.645,4),
+                  3:(.595,1.645,4),
+                  4:(.675,2.05,5),
+                  5:(.841,2.5,5)}
+
+        return levels[self.computer_level]
+
+
+    def get_computer_move(self):
+        possible_moves = self.possible_move_set()
+        if not possible_moves:
+            return []
+        bottom, top, bonus_chance_for_best_move = self.get_computer_level_stats()
+        mean_score = self.average_of_possible_scores()
+        std_dev_of_scores = self.standard_deviation_of_possible_scores()
+        
+        bottom_score = mean_score+std_dev_of_scores*bottom
+        bot_int = int(bottom_score+.5)
+        top_score = mean_score+std_dev_of_scores*top
+
+        perc_position = sum([random.randint(0,1000) for i in range(2)])/2000
+        temp_moves = self.best_possible_move_set()
+        best_score = self.best_possible_move_set(1)
+
+        if std_dev_of_scores:
+            z_score = (best_score-mean_score)/std_dev_of_scores
+        else:
+            z_score = 0
+
+        if perc_position-(.95-bonus_chance_for_best_move/100-.05*(z_score/2.5))>0:
+            return temp_moves[random.randint(0,len(temp_moves)-1)]
+        elif perc_position-.05<=0:
+            if bot_int in possible_moves.keys():
+                return possible_moves[bot_int][random.randint(0,len(possible_moves[bot_int])-1)]
+            else:
+                count=1
+                temp_int = bot_int+count
+                while temp_int not in possible_moves.keys():
+                    count += 1
+                    if count%2==0:
+                        temp_int-=count
+                    else:
+                        temp_int+=count
+                return possible_moves[temp_int][random.randint(0,len(possible_moves[temp_int])-1)]
+
+        else:
+            base_score = int((top_score-bottom_score)*perc_position+bottom_score+.5)
+            if base_score in possible_moves.keys():
+                return possible_moves[base_score][random.randint(0,len(possible_moves[base_score])-1)]
+            else:
+                count=1
+                temp_int = base_score+count
+                while temp_int not in possible_moves.keys():
+                    count += 1
+                    if count%2==0:
+                        temp_int-=count
+                    else:
+                        temp_int+=count
+
+                return possible_moves[temp_int][random.randint(0,len(possible_moves[temp_int])-1)]
+
+            
+    def possible_move_set(self):
+        '''
+        Returns a dictionary of lists in the form of [card,position] where the keys are
+        the score that will be earned with the placement of the var card in var position
+        '''
+        temp_dict = {}
+        temp_deck = carddeck(0,0)
+        temp_deck.deck = self.card_hand.get_deck()
+        for i in temp_deck.get_unique_cards_in_deck():
+            for j in self.gameboard.get_spots_open_on_board():
+                potential_score = self.gameboard.get_score_to_anchor_card(i,j)
+                if potential_score in list(temp_dict.keys()):
+                    temp_dict[potential_score].append([i,j])
+                elif potential_score:
+                    temp_dict[potential_score]=[[i,j]]
+
+        return temp_dict
+
+
+    def read_all_moves(self):
+        move_set = self.possible_move_set()
+        for i in sorted(list(move_set.keys())):
+            print(i)
+            for j in move_set[i]:
+                card = j[0].get_info_color()
+                print(card,':',j[1])
+
+    def best_possible_move_set(self,return_score=0):
+        '''
+        Returns a list of lists in the form of [card, position] for the moves with the
+        highest possible score that can be made at that given time.
         '''
         temp_score = 0
         temp_holdings = []
@@ -112,6 +248,9 @@ class game_player():
                     temp_holdings=[[i,j]]
                 elif check == temp_score:
                     temp_holdings.append([i,j])
+
+        if return_score:
+            return temp_score
                     
         return temp_holdings
 

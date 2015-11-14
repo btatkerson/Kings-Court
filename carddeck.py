@@ -377,7 +377,25 @@ class carddeck():
         else:
             self.deck.append(card)
             return 1
-        0
+        return 0
+
+    def get_unique_cards_in_deck(self):
+        '''
+        Returns a list of cards that are unique in value and suit for multideck stacks
+        
+        Basically, if you have more than one deck of cards in your deck, then there is
+        a chance of repeat cards in your hand. If you have two ace of spades that you
+        can play in a game, then this returns a list with only one of those ace of spades
+        to avoid recalculating for the same card stats
+        '''
+        temp_dict = {}
+        for i in self.get_deck():
+            if tuple(i.get_info(1)) in list(temp_dict.keys()):
+                pass
+            else:
+                temp_dict[tuple(i.get_info(1))]=i
+
+        return list(temp_dict.values())
 
     def is_deck_empty(self):
         return False if len(self.deck) > 0 else True 
