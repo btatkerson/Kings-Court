@@ -59,7 +59,6 @@ class gameboard():
                 self.game_board[i].append(None)
 
         self.set_initial_board()
-
         return 1
 
     def set_card_on_board(self,card_in_play=None,x=None,y=None):
@@ -132,7 +131,7 @@ class gameboard():
             if verbo:
                 print('Place Score',temp_score,'\nMatching trumps', match_trump_suit, '\nMatch corner suit', match_corner_suit,'\nMatch corner val',match_corner_val,'\nMatch col/row val',match_card_val)
 
-            temp_score += match_trump_suit + match_corner_suit + match_card_val*3 + match_corner_val*2
+            temp_score += match_trump_suit + match_corner_suit + match_card_val*3 + match_corner_val*3
 
             #print(scores, match_trump_suit, match_card_val*3, match_corner_val*2, match_corner_suit)
             return temp_score
@@ -282,7 +281,6 @@ class gameboard():
                 return 0
         return -1
             
-            
 
     def get_card_on_spot(self,x=None, y=None):
         co, x, y = self.verify_coordinate(x,y)
@@ -299,9 +297,6 @@ class gameboard():
                 temp_dict[i*7+k]=l
         return temp_dict
 
-            
-
-            
 
     def print_game_board(self, readable=False):
         for i in self.game_board:
@@ -523,6 +518,8 @@ class gameboard():
 
         return open_spots
 
+    def get_board_side_length(self):
+        return self.GRID_SIZE_LARGE ######################################## FIX THIS SHIT
 
     def is_spot_with_neighbor(self, x=None, y=None):
         co, x, y = self.verify_coordinate(x,y)
@@ -552,7 +549,17 @@ class gameboard():
                 return True
         return False
 
-    def verify_coordinate(self, x=None, y=None):
+    def get_coordinates_by_index(self, index=None):
+        if type(index) == int: 
+            return [index%self.MAX_GRID_WIDTH_INDEX, index//self.MAX_GRID_HEIGHT_INDEX]
+        else:
+            return [None, None]
+
+
+    def verify_coordinate(self, x=None, y=None, index=None):
+        if index:
+            coords = self.get_coordinates_by_index(index)
+            x,y = coords[0], coords[1]
         if x != None and y == None:
             if type(x) == int:
                 if self.MIN_GRID_WIDTH_INDEX <= x <= self.MAX_GRID_WIDTH_INDEX-1:
@@ -583,126 +590,3 @@ class gameboard():
                 return True, int(x), int(y)
 
         return False
-
-
-'''
-d=carddeck(0,0)
-test_deck = carddeck(2,0)
-kings_deck = carddeck(0,0)
-test_deck.reset_deck()
-test_deck.deal_card(test_deck.find_card([6,7,8,9,10,11]))
-test_deck.deal_card_to_different_deck(kings_deck,'K',all_instances=1)
-test_deck.shuffle_deck()
-kings_deck.print_readable_deck()
-kings_deck.master_deck=kings_deck.deck
-kings_deck.reset_deck()
-print('King card',kings_deck.find_random_card()[0].get_info(1))
-
-test_deck.master_deck=test_deck.deck
-test_deck.reset_deck()
-
-a = gameboard(0)
-print(a.get_dictionary_of_slot_occupants())
-a.print_game_board_color()
-print()
-
-#a.set_card_on_board(a.game_kings_deck.find_random_card()[0],a.MIDDLE_GRID_WIDTH_INDEX,a.MIDDLE_GRID_HEIGHT_INDEX)
-
-for i in range(a.MAX_GRID_WIDTH_INDEX):
-    for j in range(a.MAX_GRID_HEIGHT_INDEX):
-        if j == i == a.MIDDLE_GRID_HEIGHT_INDEX:
-            pass
-        elif a.is_spot_open(i,j):
-            temp_card = test_deck.deal_card()[0]
-            if a.is_legal_to_anchor_card(temp_card,i,j):
-                a.set_card_on_board(temp_card,i,j)
-            elif (i,j) == (a.MAX_GRID_WIDTH_INDEX-1,a.MAX_GRID_HEIGHT_INDEX-1):
-                break
-            else:
-                test_deck.take_card(temp_card)
-
-games = 0
-timer = time()
-tally = {0:0,
-         1:0,
-         2:0,
-         3:0,
-         4:0}
-
-while games < 20000:
-    games += 1
-    while len(a.get_spots_open_on_board())>0:
-        spot = a.get_spots_open_on_board()
-        dealt = False
-        high_score = [-100,None,None]
-        temp_hold = None
-        breaker = False
-        for i in [a.game_deck.deal_card()]:
-            temp_hold = i
-            for j in spot:
-                if i == []:
-                    breaker = 1
-                    break
-                if a.is_legal_to_anchor_card(i[0],j):
-                    if a.get_score_to_anchor_card(i[0],j) > high_score[0]:
-                        high_score = [a.get_score_to_anchor_card(i[0],j),i[0],j]
-        if breaker:
-            break
-        if high_score == [-100,None,None]:
-            pass
-        else:
-            #a.get_score_to_anchor_card(high_score[1],high_score[2],verbo=True)
-            a.set_card_on_board(high_score[1],high_score[2])
-            #a.print_game_board_color()
-            #print(high_score, high_score[1].get_info(1),high_score[0])
-            #input()
-    
-    tally[len(a.get_spots_open_on_board())] += 1
-    #print('spots',a.get_spots_open_on_board())
-    #a.print_game_board_color()
-    #print('No place:', [k.get_info(1) for k in a.get_cards_not_on_board()])
-    #break
-
-    a.reset_game()
-
-timer = time()-timer
-
-print([[a.is_legal_to_anchor_card(i,j) for j in a.get_spots_open_on_board()] for i in a.get_cards_not_on_board()])
-
-print("Games:",games)
-print(" Time:",timer)
-print("Average game time (games/sec):",games/timer)
-print("Tally:", tally)
-
-
-    
-
-a.print_game_board(1)
-print()
-
-a.print_game_board_color()
-print() 
-
-print([i.get_info(1) for i in a.get_cards_in_row(0)])
-print()
-
-print(a.verify_coordinate(0),[i.get_info(1) for i in a.get_cards_in_column(0)])
-print()
-
-print([i.get_info(1) for i in list(set.intersection(set(a.get_cards_in_row(4)),set(a.get_cards_in_column(4))))])
-print()
-
-d.master_deck = a.get_cards_in_column(0)
-d.reset_deck()
-
-print([i.get_info(1) for i in d.find_card_by_suit(a.get_card_on_spot(4,4).get_suit(),1)])
-print('Trump suit', a.get_trump_suit())
-
-for i in range(a.MAX_GRID_HEIGHT_INDEX):
-    #print([a.is_spot_with_neighbor(j,i) for j in range(a.MAX_GRID_WIDTH_INDEX)])
-    print([1 if a.is_spot_occupied(j,i) else 0 for j in range(a.MAX_GRID_WIDTH_INDEX)],[a.get_spot_number_of_neighbors(j,i) for j in range(a.MAX_GRID_WIDTH_INDEX)],[a.get_spot_anchor_sum(j,i) for j in range(a.MAX_GRID_WIDTH_INDEX)])
-    #print([a.is_spot_with_neighbor(j,i) for j in range(a.MAX_GRID_WIDTH_INDEX)])
-#print(a.game_board)
-print(a.get_card_slots_for_board_x())
-
-'''

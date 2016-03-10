@@ -1,10 +1,11 @@
 import random
 from carddeck import carddeck
 from gameboard import gameboard
+from PyQt4 import QtGui
 
 class game_player():
     def __init__(self,name=None, human_player=None, main_gameboard=None):
-        self.name = None
+        self.name = name
         self.human_player = True if human_player else False 
         self.set_computer_level()
         self.last_score = 0
@@ -88,7 +89,10 @@ class game_player():
 
     def place_card_on_board(self, card_to_deal=None, position=None):
         if type(card_to_deal) == list:
-            card_to_deal = card_to_deal[0]
+            if len(card_to_deal) > 0:
+                card_to_deal = card_to_deal[0]
+            else:
+                return 0
 
         if self.gameboard.is_legal_to_anchor_card(card_to_deal, position):
             self.last_score = self.score
@@ -99,26 +103,57 @@ class game_player():
         else:
             return 0
 
-    def list_of_possible_scores(self):
+    def list_of_possible_scores(self, above_score=None):
         '''
         Returns a list of only the score values that can be potentially made
         This is used for mathematical purposes
+        
+        Parameter:
+        above_score = int, float. 
+        
+        If 0 < above_score < 1, function returns only the top (above_score)% 
+        ex. list_of_possible_scores(.60) returns the top 60% of the scores.
+
+        if above_score <= 0 or above_score >= 1, function returns all the scores above
+        int(above_score).
+        ex. list_of_possible_scores(2) returns all the scores above 2
         '''
         all_score_list = []
         temp_move_set = self.possible_move_set()
+
         for i in temp_move_set.keys():
             all_score_list+=len(temp_move_set[i])*[i]
 
+        
+        if above_score != None:
+            all_score_list = sorted(all_score_list)
+            if type(above_score) == float:
+                if 0 < above_score < 1:
+                    temp_score_list = all_score_list[int(len(all_score_list)*(1-above_score)):len(all_score_list)]
+                    if len(temp_score_list) > 0:
+                        return temp_score_list
+                else:
+                    above_score = int(above_score)
+                    
+            if type(above_score) == int:
+                temp_score_list = []
+                for i in all_score_list:
+                    if i >= above_score:
+                        temp_score_list.append(i)
+
+                if len(temp_score_list) > 0:
+                    return temp_score_list
+
         return all_score_list
 
-    def average_of_possible_scores(self):
-        score_list = self.list_of_possible_scores()
+    def average_of_possible_scores(self, above_score=None):
+        score_list = self.list_of_possible_scores(above_score)
         if len(score_list) > 0:
             return sum(score_list)/len(score_list)
 
-    def standard_deviation_of_possible_scores(self):
-        average = self.average_of_possible_scores()
-        score_list = self.list_of_possible_scores()
+    def standard_deviation_of_possible_scores(self, above_score=None):
+        average = self.average_of_possible_scores(above_score)
+        score_list = self.list_of_possible_scores(above_score)
         devs = 0
         if len(score_list) > 0:
             for i in score_list:
@@ -145,7 +180,7 @@ class game_player():
         levels = {0:(.254,1.28,0),
                   1:(.385,1.645,3),
                   2:(.385,1.645,4),
-                  3:(.595,1.645,4),
+                  3:(.595,1.96,4),
                   4:(.675,2.05,5),
                   5:(.841,2.5,5)}
 
@@ -183,10 +218,11 @@ class game_player():
                 temp_int = bot_int+count
                 while temp_int not in possible_moves.keys():
                     count += 1
-                    if count%2==0:
+                    if count % 2==0:
                         temp_int-=count
                     else:
                         temp_int+=count
+
                 return possible_moves[temp_int][random.randint(0,len(possible_moves[temp_int])-1)]
 
         else:
@@ -198,7 +234,7 @@ class game_player():
                 temp_int = base_score+count
                 while temp_int not in possible_moves.keys():
                     count += 1
-                    if count%2==0:
+                    if count % 2==0:
                         temp_int-=count
                     else:
                         temp_int+=count
@@ -253,4 +289,3 @@ class game_player():
             return temp_score
                     
         return temp_holdings
-
