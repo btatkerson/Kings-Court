@@ -79,6 +79,8 @@ class player_side_panel_widget(QtGui.QWidget):
             i.update_scores()
 
     def reset_game(self,e):
+        if not reset_game_verification(self.parent).exec_():
+            return 0
         self.parent.gameboardGraphicScene.reset_game()
         players = self.parent.gameboardGraphicScene.player
         for x,y in enumerate(self.player_widgets):
@@ -86,12 +88,52 @@ class player_side_panel_widget(QtGui.QWidget):
         
 
 
+class reset_game_verification(QtGui.QDialog):
+    def __init__(self, parent=None):
+        QtGui.QDialog.__init__(self,parent=parent)
+        self.veri_layout = QtGui.QVBoxLayout(self)
+        self.veri_layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.button_layout = QtGui.QHBoxLayout(self)
+        self.button_layout.setAlignment(QtCore.Qt.AlignHCenter)
+        self.setWindowTitle('Reset Game?')
 
+        self.message = QtGui.QLabel("Do you really want to reset the game?",self)
+        self.message_style = QtGui.QFont()
+        self.message_style.setPointSize(14)
+        self.message.setFont(self.message_style)
+        self.message.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.button_widget = QtGui.QWidget(self)
+        #self.button_widget.setMaximumWidth(250)
+        self.button_widget.setLayout(self.button_layout)
+        self.confirm_button = QtGui.QPushButton('Yes',self)
+        self.confirm_button.clicked.connect(self.confirm_reset)
+        self.deny_button = QtGui.QPushButton('No',self)
+        self.deny_button.clicked.connect(self.deny_reset)
+
+
+        self.button_layout.addWidget(self.confirm_button)
+        self.button_layout.addWidget(self.deny_button)
+
+        self.veri_layout.addWidget(self.message)
+        self.veri_layout.addWidget(self.button_widget)
+        self.setFixedSize(300,125)
+        self.setLayout(self.veri_layout)
+
+        if parent:
+            self.parent = parent
+
+    def confirm_reset(self,e=None):
+        self.done(1)
+
+    def deny_reset(self, e=None):
+        self.done(0)
 
 
 class player_score_widget(QtGui.QWidget):
     def __init__(self,player=None,parent=None):
         QtGui.QWidget.__init__(self,parent=parent)
+        self.setWindowTitle("Reset the game?")
         self.vbox=QtGui.QVBoxLayout()
         self.player=player
         self.player_name_label = QtGui.QTextEdit(parent=self)
@@ -109,6 +151,7 @@ class player_score_widget(QtGui.QWidget):
         self.vbox.addWidget(self.player_score)
         self.setLayout(self.vbox)
         self.update_scores()
+        self.show()
 
     def set_player(self,player=None):
         if player:
