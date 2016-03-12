@@ -1,5 +1,4 @@
 from PyQt4 import QtCore, QtGui
-import time
 import gameboard
 import carddeck
 import game_player
@@ -62,11 +61,15 @@ class AppWidget(QtGui.QWidget):
 class player_side_panel_widget(QtGui.QWidget):
     def __init__(self,player_widgets=None,parent=None):
         QtGui.QWidget.__init__(self,parent=parent)
+        self.parent=parent
         self.vlay = QtGui.QVBoxLayout()
         self.player_widgets = player_widgets
+        self.reset_button = QtGui.QPushButton("Reset Game")
+        self.reset_button.clicked.connect(self.reset_game)
         if player_widgets:
             for i in player_widgets:
                 self.vlay.addWidget(i)
+        self.vlay.addWidget(self.reset_button)
         self.setLayout(self.vlay)
         self.setMaximumWidth(128)
         self.show()
@@ -74,6 +77,15 @@ class player_side_panel_widget(QtGui.QWidget):
     def update_all(self):
         for i in self.player_widgets:
             i.update_scores()
+
+    def reset_game(self,e):
+        self.parent.gameboardGraphicScene.reset_game()
+        players = self.parent.gameboardGraphicScene.player
+        for x,y in enumerate(self.player_widgets):
+            y.set_player(players[x])
+        
+
+
 
 
 
@@ -97,6 +109,11 @@ class player_score_widget(QtGui.QWidget):
         self.vbox.addWidget(self.player_score)
         self.setLayout(self.vbox)
         self.update_scores()
+
+    def set_player(self,player=None):
+        if player:
+            self.player=player
+            self.update_scores()
 
     def update_scores(self):
         self.player_name_label.setText("<center>"+str(self.player.get_name())+"</center>")
@@ -170,7 +187,7 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
     def update_dock(self):
         if self.player:
             for i in self.player_deck:
-               self.scene.removeItem(i)
+                self.scene.removeItem(i)
             
         player_deck = self.player.card_hand.get_deck() 
         if not len(player_deck):
@@ -247,12 +264,17 @@ class main_game(QtGui.QGraphicsScene):
         else:
             while self.player_turn != 0:
                 comp_move=self.player[self.player_turn].get_computer_move()
-                self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1]))
-                self.main_board.set_card_on_board(comp_move[0],comp_move[1])
-                self.player[self.player_turn].card_hand.deal_card([comp_move[0]])
-                self.player_turn+=1
-                self.player_turn=self.player_turn % self.player_count
-                self.layout_board()
+                print('comp_move',comp_move)
+                if not comp_move:
+                    self.player_turn=(self.player_turn+1)%self.player_count
+                else:
+                    self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1]))
+                    self.main_board.set_card_on_board(comp_move[0],comp_move[1])
+                    self.player[self.player_turn].card_hand.deal_card([comp_move[0]])
+                    self.player_turn=(self.player_turn+1)%self.player_count
+                    self.player_turn=self.player_turn % self.player_count
+                    self.layout_board()
+
                 for i in range(5):
                     QtGui.QApplication.processEvents()
 
@@ -279,7 +301,9 @@ class main_game(QtGui.QGraphicsScene):
         print('full deck',self.main_board.game_deck.get_deck(1))
         print('len full deck',len(self.main_board.game_deck.get_deck(1)))
         while not self.main_board.game_deck.is_deck_empty():
-            self.player[count%self.player_count].card_hand.take_card(self.main_board.game_deck.deal_card()[0])
+            dealt=self.main_board.game_deck.deal_card()[0]
+            print("dealt",dealt)
+            self.player[count%self.player_count].card_hand.take_card(dealt)
             count += 1
         print('Player count', len(self.player))
         for i in self.player:                
@@ -357,6 +381,23 @@ class main_game(QtGui.QGraphicsScene):
                 self.cards_on_board_dictionary[i].set_click_off()
                 self.addItem(self.cards_on_board_dictionary[i])
         self.parent.sidepanel.update_all()
+
+    def reset_game(self):
+        print("------------------------------------------\n",self.cards_on_board_dictionary.items())
+
+        '''                                                                                Add option to set the gamemode!!      ##########'''
+        self.main_board.set_game_mode(random.randint(0,2))
+
+        self.main_board.reset_game()
+
+        for i in self.items():
+            if isinstance(i,playing_card_graphic):
+                self.removeItem(i)
+            
+        self.setup_players(self.player_count)
+        self.card_dock.player=self.player[0]
+        self.card_dock.update_dock()
+        self.layout_board()
 
 
         

@@ -38,6 +38,12 @@ class gameboard():
 
         self.initialize_game_board()
 
+    def set_game_mode(self,gamemode=None):
+        if not gamemode:
+            self.GAMEMODE = 0
+        else:
+            self.GAMEMODE = gamemode
+
 
     def set_grid_boundaries(self):
         self.MIN_GRID_HEIGHT_INDEX = self.MIN_GRID_WIDTH_INDEX = 0
