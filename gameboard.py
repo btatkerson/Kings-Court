@@ -87,14 +87,16 @@ class gameboard():
             checkpoint_diff = self.get_card_checkpoint_difference(card_in_play,x,y)
             #print("Check diff", checkpoint_diff)
             if checkpoint_diff == 0:
-                temp_score += (self.get_spot_sum_side_cards(x,y)+7)//7*3+1
+                temp_score += (self.get_spot_sum_side_cards(x,y)+7)//7*7
                 scores.append(temp_score)
             elif checkpoint_diff > 0:
-                temp_score += -4*checkpoint_diff
+                temp_score = -10
                 scores.append(temp_score)
+            '''
             else:
                 temp_score += 1
                 scores.append(1)
+            '''
             
             card_suit = card_in_play.get_suit()
             card_value = card_in_play.get_value()
@@ -132,12 +134,12 @@ class gameboard():
             '''
 
             match_corner_val = self.get_corner_value_chain_total(card_in_play,x,y)
-            match_corner_suit = self.get_corner_suit_chain_total(card_in_play,x,y)
+            match_corner_suit = self.get_corner_suit_chain_total_card_classes(card_in_play,x,y)
 
             if verbo:
-                print('Place Score',temp_score,'\nMatching trumps', match_trump_suit, '\nMatch corner suit', match_corner_suit,'\nMatch corner val',match_corner_val,'\nMatch col/row val',match_card_val)
+                print('Place Score',temp_score,'\nMatching trumps', match_trump_suit, '\nMatch corner suit', match_corner_suit,'\nMatch corner val',match_corner_val*(card_value+1),'\nMatch col/row val',match_card_val)
 
-            temp_score += match_trump_suit + match_corner_suit + match_card_val*3 + match_corner_val*3
+            temp_score += match_trump_suit + match_corner_suit + match_card_val*(card_value+1) + match_corner_val*(card_value+1)
 
             #print(scores, match_trump_suit, match_card_val*3, match_corner_val*2, match_corner_suit)
             return temp_score
@@ -146,8 +148,7 @@ class gameboard():
 
 
 
-    '''
-    def get_corner_suit_chain_total(self, card_in_play=None, x=None, y=None, direction=None):
+    def get_corner_suit_chain_total_card_classes(self, card_in_play=None, x=None, y=None, direction=None):
         co, x, y = self.verify_coordinate(x,y)
         if type(direction) in [int]:
             direction = direction%4
@@ -160,25 +161,35 @@ class gameboard():
                          [x+1,y-1],
                          [x+1,y+1],
                          [x-1,y+1]]
+                
                 spots = [self.verify_coordinate(i) for i in spots]
                 count = 0
-                if direction:
-                    if self.get_card_on_spot(spots[direction]).get_suit() == card_in_play.get_suit():
-                        return 1 + self.get_corner_suit_chain_total(card_in_play,spots[direction],direction=direction)
+                if direction in [0,1,2,3]:
+                    if spots[direction]:
+                        temp_card = self.get_card_on_spot(spots[direction][1:3])
                     else:
                         return 0
+                    if temp_card:
+                        if temp_card.get_suit() == card_in_play.get_suit():
+                            if temp_card.get_value() == 12:
+                                return 10 + self.get_corner_suit_chain_total_card_classes(card_in_play,spots[direction][1:3],direction=direction)
+                            return temp_card.get_value()+1 + self.get_corner_suit_chain_total_card_classes(card_in_play,spots[direction][1:3],direction=direction)
+                        else:
+                            return 0
                 else:
                     for i,j in enumerate(spots):
                         if j != False:
                             temp_card = self.get_card_on_spot(j[1],j[2])
                             if temp_card:
                                 if temp_card.get_suit() == card_in_play.get_suit():
-                                    count += 1 + self.get_corner_suit_chain_total(card_in_play,[j[1],j[2]],direction=i)
+                                    if temp_card.get_value() == 12:
+                                        count += 10 + self.get_corner_suit_chain_total_card_classes(card_in_play,[j[1],j[2]],direction=i)
+                                    else:
+                                        count += temp_card.get_value()+1 + self.get_corner_suit_chain_total_card_classes(card_in_play,[j[1],j[2]],direction=i)
                 return count
 
         return 0
-    '''
-
+ 
     def get_corner_suit_chain_total(self, card_in_play=None, x=None, y=None, direction=None):
         co, x, y = self.verify_coordinate(x,y)
         if type(direction) in [int]:
@@ -267,6 +278,9 @@ class gameboard():
                         for i in self.get_spot_neighbor_cards_all(x,y):
                             if i.get_value() == 12:
                                 return False
+                    if [x,y] in [[3,4],[4,3],[2,3],[3,2]]:
+                        if self.get_spot_number_of_side_neighbors(x,y) != 4:
+                            return False
 
                     card_val = card_in_play.get_value()
                     for i in self.get_spot_neighbor_cards_sides(x,y):
@@ -351,9 +365,34 @@ class gameboard():
 
         return coordinates
 
+    def get_card_slots_for_board_outline(self):
+        coordinates=[[0,0],[2,0],[4,0],[6,0],[0, 2],[6, 2],[0,4],[6,4],[0,6],[2,6],[4,6],[6,6]]
+
+        return coordinates
+
+    def get_card_slots_for_board_sides(self):
+        coordinates=[[3,0],[2,0],[4,0],[6,3],[0, 2],[6, 2],[0,4],[6,4],[0,3],[2,6],[4,6],[3,6]]
+
+        return coordinates
+
+    def get_card_slots_for_board_diamond(self):
+        coordinates=[[1,1],[2,0],[4,0],[5,1],[0, 2],[6, 2],[0,4],[6,4],[1,5],[2,6],[4,6],[5,5]]
+
+        return coordinates
+
+    def get_card_slots_for_board_corners(self):
+        coordinates=[[0,0],[6,0],[6,6],[0,6],[0,1],[1,0],[0,5],[1,6],[5,0],[6,1],[6,5],[5,6]]
+
+        return coordinates
+
+    def get_card_slots_for_board_corners_inverse(self):
+        coordinates=[[1,1],[5,1],[5,5],[1,5],[0,1],[1,0],[0,5],[1,6],[5,0],[6,1],[6,5],[5,6]]
+
+        return coordinates
+
 
     def set_initial_board(self):
-        board_cards = [self.get_card_slots_for_board_x, self.get_card_slots_for_board_x_broken, self.get_card_slots_for_board_circle][self.GAMEMODE]
+        board_cards = [self.get_card_slots_for_board_x, self.get_card_slots_for_board_x_broken, self.get_card_slots_for_board_circle, self.get_card_slots_for_board_outline, self.get_card_slots_for_board_sides, self.get_card_slots_for_board_diamond, self.get_card_slots_for_board_corners, self.get_card_slots_for_board_corners_inverse][self.GAMEMODE]
         self.game_deck.shuffle_deck()
         self.set_center_king_card()
         for i in board_cards():
