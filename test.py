@@ -121,6 +121,7 @@ class game_setup_dialog(QtGui.QDialog):
             self.player_count = 2
 
         self.players = self.parent.players
+
         if len(self.players) == self.player_count:
             self.players = [player_setup_options(i,self) for i in self.players]
         elif len(self.players) > self.player_count:
@@ -130,7 +131,7 @@ class game_setup_dialog(QtGui.QDialog):
         else:
             self.players = [player_setup_options(i,self) for i in self.players]
             while len(self.players) != self.player_count:
-                self.players.append(player_setup_options(player=game_player.game_player(name='Player',main_gameboard=self.parent.gameboardGraphicScene.main_board)))
+                self.players.append(player_setup_options(player=game_player.game_player(name='Player',human_player = False, main_gameboard=self.parent.gameboardGraphicScene.main_board)))
             
 
         self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
@@ -138,11 +139,12 @@ class game_setup_dialog(QtGui.QDialog):
         random.shuffle(self.generic_names)
         for i in range(1,len(self.players)):
             self.players[i].player.set_name(self.generic_names[i])
+            self.players[i].player.set_human(False)
             self.players[i].update_widget_to_player_stats()
             
 
         self.players[0].update_widget_to_player_stats()
-        self.players[0].human_or_computer_combo.setCurrentIndex(0)
+        self.players[0].human_or_computer_combo.setCurrentIndex(1)
         self.players[0].human_or_computer_combo.setDisabled(True)
 
 
@@ -185,7 +187,9 @@ class game_setup_dialog(QtGui.QDialog):
             i.update_player()
 
         player_list = [i.get_player() for i in self.players]
+        
         print('players update',player_list[0].get_name())
+
         self.parent.players=player_list
 
 
@@ -208,6 +212,7 @@ class player_setup_options(QtGui.QWidget):
         self.hbox = QtGui.QHBoxLayout(self)
         
         self.human_or_computer_combo = QtGui.QComboBox(self)
+        self.human_or_computer_combo.addItem("None")
         self.human_or_computer_combo.addItem("Human")
         self.human_or_computer_combo.addItem("Computer")
         self.human_or_computer_combo.setCurrentIndex(1)
@@ -221,10 +226,15 @@ class player_setup_options(QtGui.QWidget):
         self.player_level_spin.setWrapping(True)
         self.player_level_spin.setValue(player.get_computer_level() if player else 3)
 
-        if is_human:
-            self.human_or_computer_combo.setCurrentIndex(0)
-            self.human_or_computer_combo.setDisabled(True)
+        if self.player.is_human():
+            self.human_or_computer_combo.setCurrentIndex(2)
+            self.human_or_computer_combo.setEnabled(True)
             self.player_level_spin.setDisabled(True)
+        else:
+            self.human_or_computer_combo.setCurrentIndex(3)
+            self.player_level_spin.setEnabled(True)
+
+
 
         self.hbox.addWidget(self.human_or_computer_combo)
         self.hbox.addWidget(self.player_name_text_edit)
@@ -240,13 +250,15 @@ class player_setup_options(QtGui.QWidget):
     def update_widget_to_player_stats(self):
         self.player_name_text_edit.setText(self.player.get_name())
         self.player_level_spin.setValue(self.player.get_computer_level())
-        self.human_or_computer_combo.setCurrentIndex(self.player.is_computer())
+        if self.player.is_human():
+            self.player_level_spin.setDisabled(True)
+        self.human_or_computer_combo.setCurrentIndex(2 if self.player.is_computer() else 1)
 
 
     def update_player(self):
         self.player.set_name(self.player_name_text_edit.text())
         self.player.set_computer_level(self.player_level_spin.value())
-        self.player.set_human(not self.human_or_computer_combo.currentIndex())
+        self.player.set_human(True if self.human_or_computer_combo.currentIndex() == 1 else False)
 
     def get_player(self):
         return self.player
@@ -376,15 +388,21 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
         self.set_player(player)
         self.player_deck = []
 
+        self.card_dock_back = QtGui.QGraphicsPixmapItem(QtGui.QPixmap('./cards/small_dock.png'),self,self.scene)
+        self.card_dock_back.setX(-16)
+        self.addToGroup(self.card_dock_back)
+
+        '''
         self.card_dock_back = QtGui.QGraphicsRectItem()
-        self.card_dock_back.setBrush(QtGui.QBrush(QtGui.QColor(100,75,0)))
+        self.card_dock_back.setBrush(QtGui.QBrush(QtGui.QColor(100,75,0,0)))
 
         self.card_dock_back.setRect(0,0,64*8,64*2)
 
         self.addToGroup(self.card_dock_back)
+        '''
 
-        self.top_row = [(64*7-8)/9*i+16 for i in range(9)]
-        self.bott_row = [(64*7-8)/9*i+24 for i in range(9)]
+        self.top_row = [(64*7-8)/9*i+24 for i in range(9)]
+        self.bott_row = [(64*7-8)/9*i+32 for i in range(9)]
         self.top_y = 8 
         self.mid_y = 40
         self.bott_y = 56
@@ -504,16 +522,19 @@ class main_game(QtGui.QGraphicsScene):
         return self.player
 
     def computer_turns(self):
-        if self.player_turn == 0:
+        self.player_turn=self.player_turn%self.player_count
+        if self.player[self.player_turn].is_human():
+            self.card_dock.set_player(self.player[self.player_turn])
+            self.card_dock.update_dock()
             return 0
         else:
-            while self.player_turn != 0:
+            while self.player[self.player_turn].is_computer():
                 comp_move=self.player[self.player_turn].get_computer_move()
                 print('comp_move',comp_move)
-                if not comp_move:
+                if not comp_move: 
                     self.player_turn=(self.player_turn+1) % self.player_count
                 else:
-                    self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1]))
+                    self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1],mercy=self.player[self.player_turn].has_mercy()))
                     self.main_board.set_card_on_board(comp_move[0],comp_move[1])
                     self.player[self.player_turn].card_hand.deal_card([comp_move[0]])
                     self.player_turn=(self.player_turn+1) % self.player_count
@@ -532,6 +553,12 @@ class main_game(QtGui.QGraphicsScene):
                 sorter.sort_deck_by_card_value()
                 print(i.get_name(),"hand:",sorter.get_deck(1))
 
+            if self.player[self.player_turn].is_human():
+                self.card_dock.set_player(self.player[self.player_turn])
+                self.card_dock.update_dock()
+                return 0
+
+
 
     def print_player_scores(self):
         for i in range(self.player_count):
@@ -548,8 +575,7 @@ class main_game(QtGui.QGraphicsScene):
         self.player = self.parent.players
         print("Player_count!", len(self.player))
         for i in self.player:
-            i.get_hand().reset_deck()
-            i.set_score(0,1)
+            i.reset_player_hand_and_score()
         self.player_turn=0
         self.player_count = len(self.player)
         self.card_dock.set_player(self.player[0])
@@ -589,6 +615,9 @@ class main_game(QtGui.QGraphicsScene):
         print("final x,y location",x,y)
         coord_dict = self.get_coordinate_dictionary_for_board()
         temp_dict = {}
+        if self.player[self.player_turn] != player:
+            return 0
+
         for i in coord_dict.keys():
             temp_dict[i] = ((coord_dict[i][0]-x)**2+(coord_dict[i][1]-y)**2)**.5
 
@@ -596,8 +625,10 @@ class main_game(QtGui.QGraphicsScene):
         for i in temp_dict.keys():
             if temp_dict[i] < smallest[0]:
                 smallest = [temp_dict[i],i]
+
+        player.possible_move_set()
                 
-        if self.main_board.is_legal_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])) and smallest[0] < 20:
+        if (self.main_board.is_legal_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])) or player.has_mercy()) and smallest[0] < 20:
             print('Card set!')
             card.setX(coord_dict[smallest[1]][0])
             card.setY(coord_dict[smallest[1]][1])
@@ -605,7 +636,7 @@ class main_game(QtGui.QGraphicsScene):
             print('coords:',self.main_board.get_coordinates_by_index(smallest[1]))
             print("Score of drop",self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])))
             if player:
-                player.set_score(self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1]),verbo=1))
+                player.set_score(self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1]),mercy=player.has_mercy(),verbo=1))
                 print("Player Score: ",player.get_score())
             print(self.main_board.set_card_on_board(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])))
             card.set_click_off()
@@ -751,12 +782,11 @@ class playing_card_graphic(QtGui.QGraphicsItem):
         if self.click_disabled:
             return
         new_position = event.scenePos()
-        print(new_position)
 
         #old_position = self.scenePos()
         #new_position.setY(old_position.y())
         self.setX(new_position.x()-32)
-        self.setY(new_position.y()-560)
+        self.setY(new_position.y()-568)
         self.setZValue(200)
         self.show()
 
@@ -768,7 +798,7 @@ class playing_card_graphic(QtGui.QGraphicsItem):
         new_position = event.scenePos()
         print(new_position)
         self.setX(new_position.x()-32)
-        #self.setY(new_position.y()+560)
+        self.setY(new_position.y()-568)
         self.show()
 
     def mouseReleaseEvent(self, event): 

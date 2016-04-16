@@ -79,10 +79,10 @@ class gameboard():
 
    
 
-    def get_score_to_anchor_card(self, card_in_play=None, x=None, y=None, verbo=False):
+    def get_score_to_anchor_card(self, card_in_play=None, x=None, y=None, mercy=False, verbo=False):
         scores = []
         temp_score=0
-        if self.is_legal_to_anchor_card(card_in_play, x, y):
+        if self.is_legal_to_anchor_card(card_in_play, x, y) or mercy:
             co,x,y = self.verify_coordinate(x,y)
             checkpoint_diff = self.get_card_checkpoint_difference(card_in_play,x,y)
             #print("Check diff", checkpoint_diff)

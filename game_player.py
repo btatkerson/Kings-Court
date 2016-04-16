@@ -7,12 +7,19 @@ class game_player():
     def __init__(self,name=None, human_player=None, main_gameboard=None):
         self.name = name
         self.human_player = True if human_player else False 
+        self.mercy = False
         self.set_computer_level()
         self.last_score = 0
         self.score = 0
         self.card_hand = carddeck(0,0)
         self.gameboard = main_gameboard or gameboard()
         
+
+    def reset_player_hand_and_score(self):
+        self.mercy = False
+        self.last_score = 0
+        self.score = 0
+        self.card_hand.reset_deck()
 
     def set_name(self,name=None):
         if type(name) in [int,float,str,chr]:
@@ -94,9 +101,9 @@ class game_player():
             else:
                 return 0
 
-        if self.gameboard.is_legal_to_anchor_card(card_to_deal, position):
+        if self.gameboard.is_legal_to_anchor_card(card_to_deal, position) or self.has_mercy():
             self.last_score = self.score
-            self.score += self.gameboard.get_score_to_anchor_card(card_to_deal,position)
+            self.score += self.gameboard.get_score_to_anchor_card(card_to_deal,position, mercy=self.has_mercy())
             self.card_hand.deal_card([card_to_deal])
             self.gameboard.set_card_on_board(card_to_deal,position)
             return 1
@@ -258,8 +265,28 @@ class game_player():
                 elif potential_score:
                     temp_dict[potential_score]=[[i,j]]
 
+        if not temp_dict and self.card_hand.get_number_of_cards_in_deck() == 1:
+            for j in self.gameboard.get_spots_open_on_board():
+                potential_score = self.gameboard.get_score_to_anchor_card(i,j,mercy=True)
+                if potential_score in list(temp_dict.keys()):
+                    temp_dict[potential_score].append([i,j])
+                elif potential_score:
+                    temp_dict[potential_score]=[[i,j]]
+            if temp_dict:
+                self.mercy = True
+
+        
+
+
         return temp_dict
 
+    def has_legal_move_left(self):
+        if self.possible_move_set():
+            return True
+        return False
+
+    def has_mercy(self):
+        return self.mercy
 
     def read_all_moves(self):
         move_set = self.possible_move_set()

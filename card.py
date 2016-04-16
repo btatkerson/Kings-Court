@@ -1,5 +1,5 @@
 import colorama as col
-from termcolor import colored
+#from termcolor import colored
 __author__ = 'benjamin'
 class card():
 
