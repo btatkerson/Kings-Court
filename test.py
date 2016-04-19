@@ -141,14 +141,29 @@ class game_setup_dialog(QtGui.QDialog):
             self.players[i].player.set_name(self.generic_names[i])
             self.players[i].player.set_human(False)
             self.players[i].update_widget_to_player_stats()
+
+
             
 
         self.players[0].update_widget_to_player_stats()
-        self.players[0].human_or_computer_combo.setCurrentIndex(1)
+        self.players[0].human_or_computer_combo.setCurrentIndex(0)
         self.players[0].human_or_computer_combo.setDisabled(True)
 
 
         self.vbox = QtGui.QVBoxLayout(self)
+
+        self.player_count_widget_layout = QtGui.QHBoxLayout(self)
+        self.player_count_widget = QtGui.QWidget(self)
+        self.player_count_label = QtGui.QLabel("Player Count:",self)
+        self.player_count_spin = QtGui.QSpinBox(self)
+        self.player_count_spin.setMinimum(2)
+        self.player_count_spin.setMaximum(4)
+        self.player_count_spin.setValue(4)
+        self.player_count_spin.setWrapping(True)
+        self.player_count_widget_layout.addWidget(self.player_count_label)
+        self.player_count_widget_layout.addWidget(self.player_count_spin)
+        self.player_count_spin.valueChanged.connect(self.spinChangeEvent)
+        self.player_count_widget.setLayout(self.player_count_widget_layout)
 
         self.game_mode_widget_layout = QtGui.QHBoxLayout(self)
         self.game_mode_widget=QtGui.QWidget(self)
@@ -168,17 +183,38 @@ class game_setup_dialog(QtGui.QDialog):
         self.game_mode_widget_layout.addWidget(self.game_mode_label)
         self.game_mode_widget_layout.addWidget(self.game_mode_spinner)
 
+        self.vbox.addWidget(self.player_count_widget)
         self.vbox.addWidget(self.game_mode_widget)
 
         for i in self.players:
             self.vbox.addWidget(i)
 
+        self.confirm_button = QtGui.QPushButton("Confirm")
+        self.confirm_button.clicked.connect(self.closeEvent)
+        self.vbox.addWidget(self.confirm_button)
+
         self.update_players()
+
+    def spinChangeEvent(self,e=None):
+        if e:
+            print(e)
+            self.player_count=e
+
+            for i in range(1,self.player_count):
+                self.players[i].enable()
+
+            for i in range(self.player_count,4):
+                self.players[i].disable()
+
+    def keyPressEvent(self, e=None):
+        if e.key() == QtCore.Qt.Key_Escape:
+            self.closeEvent()
+            
         
     def closeEvent(self,e=None):
         self.update_players()
         self.parent.gamemode = self.game_mode_spinner.currentIndex()
-
+        self.close()
 
         
 
@@ -186,10 +222,11 @@ class game_setup_dialog(QtGui.QDialog):
         for i in self.players:
             i.update_player()
 
-        player_list = [i.get_player() for i in self.players]
+        player_list = [self.players[i].get_player() for i in range(self.player_count)]
         
         print('players update',player_list[0].get_name())
 
+        self.parent.player_count = self.player_count
         self.parent.players=player_list
 
 
@@ -212,10 +249,10 @@ class player_setup_options(QtGui.QWidget):
         self.hbox = QtGui.QHBoxLayout(self)
         
         self.human_or_computer_combo = QtGui.QComboBox(self)
-        self.human_or_computer_combo.addItem("None")
         self.human_or_computer_combo.addItem("Human")
         self.human_or_computer_combo.addItem("Computer")
-        self.human_or_computer_combo.setCurrentIndex(1)
+        self.human_or_computer_combo.setCurrentIndex(0)
+        self.human_or_computer_combo.currentIndexChanged.connect(self.human_comp_change)
 
 
         self.player_name_text_edit = QtGui.QLineEdit(player.get_name() if player else "Player", self)
@@ -224,14 +261,14 @@ class player_setup_options(QtGui.QWidget):
         self.player_level_spin.setMinimum(1)
         self.player_level_spin.setMaximum(5)
         self.player_level_spin.setWrapping(True)
-        self.player_level_spin.setValue(player.get_computer_level() if player else 3)
+        self.player_level_spin.setValue(player.get_computer_level() if player else 2)
 
         if self.player.is_human():
-            self.human_or_computer_combo.setCurrentIndex(2)
+            self.human_or_computer_combo.setCurrentIndex(0)
             self.human_or_computer_combo.setEnabled(True)
             self.player_level_spin.setDisabled(True)
         else:
-            self.human_or_computer_combo.setCurrentIndex(3)
+            self.human_or_computer_combo.setCurrentIndex(1)
             self.player_level_spin.setEnabled(True)
 
 
@@ -247,31 +284,41 @@ class player_setup_options(QtGui.QWidget):
 
         self.update_player()
 
+    def human_comp_change(self,e=None):
+        if e == 0:
+            self.disable_ai()
+        else:
+            self.enable()
+
+    def disable_ai(self):
+        self.player_level_spin.setDisabled(True)
+
+    def disable(self):
+        self.human_or_computer_combo.setDisabled(True)
+        self.player_name_text_edit.setDisabled(True)
+        self.player_level_spin.setDisabled(True)
+
+    def enable(self):
+        self.human_or_computer_combo.setEnabled(True)
+        self.player_name_text_edit.setEnabled(True)
+        self.player_level_spin.setEnabled(True)
+
+
     def update_widget_to_player_stats(self):
         self.player_name_text_edit.setText(self.player.get_name())
         self.player_level_spin.setValue(self.player.get_computer_level())
         if self.player.is_human():
             self.player_level_spin.setDisabled(True)
-        self.human_or_computer_combo.setCurrentIndex(2 if self.player.is_computer() else 1)
+        self.human_or_computer_combo.setCurrentIndex(0 if self.player.is_human() else 1)
 
 
     def update_player(self):
         self.player.set_name(self.player_name_text_edit.text())
         self.player.set_computer_level(self.player_level_spin.value())
-        self.player.set_human(True if self.human_or_computer_combo.currentIndex() == 1 else False)
+        self.player.set_human(True if self.human_or_computer_combo.currentIndex() == 0 else False)
 
     def get_player(self):
         return self.player
-
-
-
-
-        
-
-
-
-        
-        
 
 
 class reset_game_verification(QtGui.QDialog):
