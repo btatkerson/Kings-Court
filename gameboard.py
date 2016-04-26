@@ -142,6 +142,10 @@ class gameboard():
             temp_score += match_trump_suit + match_corner_suit + match_card_val*(card_value+1) + match_corner_val*(card_value+1)
 
             #print(scores, match_trump_suit, match_card_val*3, match_corner_val*2, match_corner_suit)
+            '''
+            if mercy:
+                return temp_score//2
+            '''
             return temp_score
         
         return temp_score
@@ -380,6 +384,11 @@ class gameboard():
 
         return coordinates
 
+    def get_card_slots_for_board_diamond2(self):
+        coordinates=[[3,0],[4,1],[5,2],[6,3],[5,4],[4,5],[3,6],[2,5],[1,4],[0,3],[1,2],[2,1]]
+
+        return coordinates
+
     def get_card_slots_for_board_corners(self):
         coordinates=[[0,0],[6,0],[6,6],[0,6],[0,1],[1,0],[0,5],[1,6],[5,0],[6,1],[6,5],[5,6]]
 
@@ -392,7 +401,7 @@ class gameboard():
 
 
     def set_initial_board(self):
-        board_cards = [self.get_card_slots_for_board_x, self.get_card_slots_for_board_x_broken, self.get_card_slots_for_board_circle, self.get_card_slots_for_board_outline, self.get_card_slots_for_board_sides, self.get_card_slots_for_board_diamond, self.get_card_slots_for_board_corners, self.get_card_slots_for_board_corners_inverse][self.GAMEMODE]
+        board_cards = [self.get_card_slots_for_board_x, self.get_card_slots_for_board_x_broken, self.get_card_slots_for_board_circle, self.get_card_slots_for_board_outline, self.get_card_slots_for_board_sides, self.get_card_slots_for_board_diamond, self.get_card_slots_for_board_diamond2, self.get_card_slots_for_board_corners, self.get_card_slots_for_board_corners_inverse][self.GAMEMODE]
         self.game_deck.shuffle_deck()
         self.set_center_king_card()
         for i in board_cards():

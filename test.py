@@ -176,8 +176,9 @@ class game_setup_dialog(QtGui.QDialog):
         self.game_mode_spinner.addItem("4: Outside Border")
         self.game_mode_spinner.addItem("5: Sides")
         self.game_mode_spinner.addItem("6: Diamond")
-        self.game_mode_spinner.addItem("7: Corners")
-        self.game_mode_spinner.addItem("8: Inverse Corners")
+        self.game_mode_spinner.addItem("7: Diamond Sharper")
+        self.game_mode_spinner.addItem("8: Corners")
+        self.game_mode_spinner.addItem("9: Inverse Corners")
         self.game_mode_spinner.setCurrentIndex(1)
 
         self.game_mode_widget_layout.addWidget(self.game_mode_label)
@@ -339,6 +340,8 @@ class reset_game_verification(QtGui.QDialog):
         self.message_style.setPointSize(14)
         self.message.setFont(self.message_style)
         self.message.setAlignment(QtCore.Qt.AlignCenter)
+        self.message.setWordWrap(True)
+        self.message.setMinimumWidth(256)
 
         self.button_widget = QtGui.QWidget(self)
         #self.button_widget.setMaximumWidth(250)
@@ -354,7 +357,7 @@ class reset_game_verification(QtGui.QDialog):
 
         self.veri_layout.addWidget(self.message)
         self.veri_layout.addWidget(self.button_widget)
-        self.setFixedSize(300,125)
+        self.setFixedSize(300,128)
         self.setLayout(self.veri_layout)
 
 
@@ -372,7 +375,7 @@ class player_score_widget(QtGui.QWidget):
         self.vbox=QtGui.QVBoxLayout()
         self.player=player
         self.player_name_label = QtGui.QLabel(parent=self)
-        self.player_name_label.setMaximumHeight(30)
+        self.player_name_label.setFixedHeight(30)
         if colorStyle:
             self.player_name_label.setStyleSheet(colorStyle)
         else:
@@ -393,7 +396,7 @@ class player_score_widget(QtGui.QWidget):
         self.vbox.addWidget(self.player_score)
         self.setLayout(self.vbox)
         self.update_scores()
-        self.setMaximumHeight(60)
+        self.setMaximumHeight(64)
 
 
     def set_player(self,player=None):
@@ -527,8 +530,6 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
             self.player = game_player.game_player()
         
 
-                
-
 
 class main_game(QtGui.QGraphicsScene):
     def __init__(self, player_count=None, parent=None):
@@ -570,6 +571,14 @@ class main_game(QtGui.QGraphicsScene):
 
     def computer_turns(self):
         self.player_turn=self.player_turn%self.player_count
+        if self.is_game_over():
+            temp=game_over_screen(self.player,scene=self)
+            temp.setX(0)
+            temp.setY(0)
+            temp.setZValue(200)
+            self.addItem(temp)
+            print("Screen Added!")
+
         if self.player[self.player_turn].is_human():
             self.card_dock.set_player(self.player[self.player_turn])
             self.card_dock.update_dock()
@@ -593,6 +602,15 @@ class main_game(QtGui.QGraphicsScene):
                 for i in range(5):
                     QtGui.QApplication.processEvents()
 
+            if self.is_game_over():
+                temp=game_over_screen(self.player,scene=self)
+                temp.setX(0)
+                temp.setY(0)
+                temp.setZValue(200)
+                self.addItem(temp)
+                print("Screen Added!")
+
+
             for i in self.player:
                 sorter=carddeck.carddeck(0)
                 sorter.deck=i.card_hand.get_deck()
@@ -603,9 +621,34 @@ class main_game(QtGui.QGraphicsScene):
             if self.player[self.player_turn].is_human():
                 self.card_dock.set_player(self.player[self.player_turn])
                 self.card_dock.update_dock()
+                '''
+                temp=game_over_screen(self.player,scene=self)
+                temp.setX(0)
+                temp.setY(0)
+                temp.setZValue(200)
+                self.addItem(temp)
+                print("Screen Added!")
+                '''
+                if self.is_human_game_over():
+                    self.player_turn=(self.player_turn+1) % self.player_count
+                    self.player_turn=self.player_turn % self.player_count
                 return 0
 
 
+    def is_game_over(self):
+        for i in self.player:
+            if i.has_legal_move_left(): 
+                print(i.get_name(),"has legal move left, game not over")
+                return False
+        return True
+
+
+    def is_human_game_over(self):
+        for i in self.player:
+            if i.is_human():
+                if i.has_legal_move_left(): 
+                    return False
+        return True
 
     def print_player_scores(self):
         for i in range(self.player_count):
@@ -717,6 +760,13 @@ class main_game(QtGui.QGraphicsScene):
                 self.addItem(self.cards_on_board_dictionary[i])
         self.parent.sidepanel.update_all()
 
+
+    def close_game_over_screens(self):
+        for i in self.items():
+            if isinstance(i,game_over_screen):
+                self.removeItem(i)
+
+
     def reset_game(self):
         print("------------------------------------------\n",self.cards_on_board_dictionary.items())
 
@@ -726,7 +776,7 @@ class main_game(QtGui.QGraphicsScene):
         self.main_board.reset_game()
 
         for i in self.items():
-            if isinstance(i,playing_card_graphic):
+            if isinstance(i,playing_card_graphic) or isinstance(i,game_over_screen):
                 self.removeItem(i)
             
         self.setup_players(self.player_count)
@@ -735,7 +785,97 @@ class main_game(QtGui.QGraphicsScene):
         self.layout_board()
 
 
-        
+class game_over_screen(QtGui.QGraphicsItemGroup):
+    def __init__(self, players=None, parent=None, scene=None):
+        self.parent = parent
+        self.scene = scene
+        if players:
+            self.players = players
+            print(self.players,"These are the players!")
+            self.winner = sorted(self.players, key=lambda x: x.get_score(),reverse=True)[0]
+            self.winner_pos = 0
+            for i in range(len(self.players)):
+                if self.players[i] == self.winner:
+                    self.winner_pos = i
+                    self.winner_name = self.winner.get_name()
+                    break
+                    
+            print(self.winner_name,"wins!")
+        else:
+            self.players = []
+
+        QtGui.QGraphicsItemGroup.__init__(self,parent,scene)
+        self.setHandlesChildEvents(False)
+
+        self.graphicRectangle = QtGui.QGraphicsRectItem(0,0,512,512,self)
+        self.graphicRectangle.setBrush(QtGui.QBrush(QtGui.QColor(255,255,255,196)))
+        self.graphicRectangle.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+        self.winnerFont = QtGui.QFont()
+        self.winnerFont.setPointSize(72)
+        self.winnerFont.setBold(True)
+        self.addToGroup(self.graphicRectangle)
+
+        self.winnerText = QtGui.QGraphicsTextItem(self.winner_name, parent=self,scene=scene)
+        self.winnerText.setTextWidth(512)
+        self.winnerText.setFont(self.winnerFont)
+        #self.winnerText.setHtml("<center><font size = 108><b>"+self.winner_name+" Wins!</b></font></center>")
+        self.winnerText.setHtml("<center>"+self.winner_name+" Wins!</center>")
+
+        self.color_style=[QtGui.QColor(175, 0, 0), QtGui.QColor(25, 117, 209), QtGui.QColor(25, 117, 25), QtGui.QColor(153, 153, 0)]
+        self.winnerText.setDefaultTextColor(self.color_style[self.winner_pos])
+
+        self.winnerText.setY(220-144)
+        self.addToGroup(self.winnerText)
+
+        self.close_graphic_button = game_over_close_button(scene=self.scene)
+        self.close_graphic_button.setX(472)
+        self.close_graphic_button.setY(10)
+        self.addToGroup(self.close_graphic_button)
+        #self.graphicRectangle.setVisible(True)
+
+
+class game_over_close_button(QtGui.QGraphicsItemGroup):
+    def __init__(self,parent=None, scene=None):
+        QtGui.QGraphicsItemGroup.__init__(self,parent,scene)
+        self.parent= parent
+        self.scene = scene
+        self.mouse_state_colors = [QtGui.QColor(0,0,0), QtGui.QColor(255,0,0), QtGui.QColor(128,0,0)]
+        self.backrect = QtGui.QGraphicsRectItem(0,0,26,36,parent)
+        self.backrect.setBrush(QtGui.QBrush(QtGui.QColor(255,0,0,0)))
+        self.backrect.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+        self.addToGroup(self.backrect)
+
+        font = QtGui.QFont()
+        font.setPointSize(20)
+        self.topText = QtGui.QGraphicsTextItem('',self)
+        self.topText.setHtml('<center>X</center>')
+        self.topText.setFont(font)
+        self.topText.setTextWidth(20)
+        self.addToGroup(self.topText)
+        self.setAcceptHoverEvents(True)
+
+    def boundingRect(self):
+        return QtCore.QRectF(0,0,20,20)
+
+    def mouseReleaseEvent(self, event): 
+        print("Released!")
+        self.topText.setDefaultTextColor(self.mouse_state_colors[1])
+        self.scene.close_game_over_screens()
+
+    def mousePressEvent(self, event): 
+        print("Pressed!")
+        self.topText.setDefaultTextColor(self.mouse_state_colors[2])
+
+    def hoverEnterEvent(self,event):
+        self.topText.setDefaultTextColor(self.mouse_state_colors[1])
+
+    def hoverLeaveEvent(self,event):
+        self.topText.setDefaultTextColor(self.mouse_state_colors[0])
+
+
+     
+
+                
 class playing_card_graphic(QtGui.QGraphicsItem):
     def __init__(self, suit=0, value=0,card=None, dock=None,parent=None,scene=None):
         if card:

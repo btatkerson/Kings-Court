@@ -282,6 +282,7 @@ class game_player():
 
     def has_legal_move_left(self):
         if self.possible_move_set():
+            print(self.name,"has legal move!")
             return True
         return False
 
