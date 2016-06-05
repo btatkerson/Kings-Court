@@ -1,3 +1,4 @@
+import stats
 from carddeck import carddeck, card, random
 from time import time
 
@@ -79,10 +80,12 @@ class gameboard():
 
    
 
-    def get_score_to_anchor_card(self, card_in_play=None, x=None, y=None, mercy=False, verbo=False):
+    def get_score_to_anchor_card(self, card_in_play=None, x=None, y=None, mercy=False, legal_score=False, verbo=False):
         scores = []
         temp_score=0
         if self.is_legal_to_anchor_card(card_in_play, x, y) or mercy:
+            if legal_score:
+                return True
             co,x,y = self.verify_coordinate(x,y)
             checkpoint_diff = self.get_card_checkpoint_difference(card_in_play,x,y)
             #print("Check diff", checkpoint_diff)
@@ -148,6 +151,8 @@ class gameboard():
             '''
             return temp_score
         
+        if legal_score:
+            return False
         return temp_score
 
 
@@ -292,6 +297,21 @@ class gameboard():
                             return False
                     return True
         return False
+
+    def get_open_spots_legally_playable(self):
+        open_spots = self.get_spots_open_on_board()
+        legal_spots_to_play = []
+        for i in open_spots:
+            if i in [[3,4],[4,3],[2,3],[3,2]]:
+                if self.get_spot_number_of_side_neighbors(i) == 4:
+                    legal_spots_to_play.append(i)
+            else:
+                if self.get_spot_number_of_neighbors(i)>0:
+                    legal_spots_to_play.append(i)
+
+        return legal_spots_to_play
+
+            
 
     def get_card_checkpoint_difference(self, card_in_play=None, x=None, y=None):
         co, x, y = self.verify_coordinate(x,y)
@@ -449,6 +469,7 @@ class gameboard():
 
     def get_spot_neighbor_cards_sides(self, x=None, y=None):
         if self.verify_coordinate(x,y):
+            t,x,y=self.verify_coordinate(x,y)
             min_x = x-1
             max_x = x+1
 
@@ -474,6 +495,7 @@ class gameboard():
 
     def get_spot_neighbor_cards_corners(self, x=None, y=None):
         if self.verify_coordinate(x,y):
+            t,x,y=self.verify_coordinate(x,y)
             min_x = x-1
             max_x = x+1
 
@@ -504,6 +526,9 @@ class gameboard():
                     return True
         return False
 
+    def get_card_deck(self):
+        return self.game_deck
+
     def get_cards_not_on_board(self):
         temp_deck = carddeck(0,0,0)
         temp_deck.deck = list(set.difference(set(self.game_deck.master_deck),set(self.get_cards_on_board())))
@@ -519,6 +544,116 @@ class gameboard():
                 cards_on_board.append(j)
         return cards_on_board
 
+    def get_cards_on_board_of_suit(self, suit=None, temp_card=None):
+        temp_list=[]
+
+        if isinstance(temp_card, card):
+            suit = temp_card.get_suit()
+
+        suit = card().verify_suit(suit)
+
+        if suit is not False:
+            for i in self.get_cards_on_board():
+                if i.get_suit() == suit:
+                    temp_list.append(i)
+
+        return temp_list
+
+    def get_average_value_of_cards_on_board_of_suit(self, suit = None, temp_card = None):
+        return stats.average([i.get_value()+1 for i in self.get_cards_on_board_of_suit(suit,temp_card)])
+
+    def get_spread_of_cards_by_suit(self, suit=None, temp_card=None, vector=False):
+        temp_list = self.get_cards_on_board_of_suit(suit,temp_card)
+        coords=[]
+        for i in temp_list:
+            coords.append(self.get_coordinates_by_index(self.get_index_for_card_on_board(i)))
+
+        x_lis = [i[0] for i in coords]
+        y_lis = [i[1] for i in coords]
+
+        midpoint = [stats.mean(x_lis), stats.mean(y_lis)]
+        std_dev_dir= [stats.std_dev(x_lis), stats.std_dev(y_lis)]
+        
+        if not vector:
+            dis_from_midpoint = [((i[0]-midpoint[0])**2+(i[1]-midpoint[1])**2)**.5 for i in coords]
+            mean_distance = stats.mean(dis_from_midpoint)
+            std_distance = stats.std_dev(dis_from_midpoint)
+            return (mean_distance, std_distance)
+
+        return (midpoint, std_dev_dir)
+
+
+    def get_cards_on_board_of_value(self, value=None, temp_card=None):
+        temp_list=[]
+
+        if isinstance(temp_card, card):
+            print("IS INSTANCE")
+            value = temp_card.get_value()
+
+        value = card().verify_value(value)
+
+        if value is not False:
+            for i in self.get_cards_on_board():
+                if i.get_value() == value:
+                    temp_list.append(i)
+
+        return temp_list
+
+    def get_spread_of_cards_by_value(self, value=None, temp_card=None, vector=False):
+        temp_list = self.get_cards_on_board_of_value(value,temp_card)
+        coords=[]
+        for i in temp_list:
+            coords.append(self.get_coordinates_by_index(self.get_index_for_card_on_board(i)))
+
+        x_lis = [i[0] for i in coords]
+        y_lis = [i[1] for i in coords]
+
+        midpoint = [stats.mean(x_lis), stats.mean(y_lis)]
+        std_dev_dir= [stats.std_dev(x_lis), stats.std_dev(y_lis)]
+        
+        if not vector:
+            dis_from_midpoint = [((i[0]-midpoint[0])**2+(i[1]-midpoint[1])**2)**.5 for i in coords]
+            mean_distance = stats.mean(dis_from_midpoint)
+            std_distance = stats.std_dev(dis_from_midpoint)
+            return (mean_distance, std_distance)
+
+        return (midpoint, std_dev_dir)
+
+    def get_spots_affected_by_card_play(self, card=None, spot=None, mercy=False):
+        co, x, y = self.verify_coordinate(spot)
+        if co:
+            if self.is_legal_to_anchor_card(card,x,y) or mercy:
+                row_spots = self.get_spots_open_in_row(y)
+                col_spots = self.get_spots_open_in_column(x)
+                cor_suit_spots = []
+                cor_value_spots= []
+
+                dir_consts = {0:[-1,-1],1:[1,-1],2:[1,1],3:[-1,1]}
+                direction_chains_suit = {i:self.get_corner_suit_chain_total(card,x,y,i) for i in range(4)}
+
+                for i in range(4):
+                    shifted = [(direction_chains_suit[i]+1)*dir_consts[i][0]+x, (direction_chains_suit[i]+1)*dir_consts[i][1]+y]
+                    if self.verify_coordinate(shifted):
+                        if self.is_spot_open(shifted):
+                            cor_suit_spots.append(shifted)
+
+
+                direction_chains_value = {i:self.get_corner_value_chain_total(card, x, y, i) for i in range(4)}
+                for i in range(4):
+                    shifted = [(direction_chains_value[i]+1)*dir_consts[i][0]+x, (direction_chains_value[i]+1)*dir_consts[i][1]+y]
+                    if self.verify_coordinate(shifted):
+                        if self.is_spot_open(shifted):
+                            cor_value_spots.append(shifted)
+
+                
+
+                # Open spots in the column/row excluding the spot being played
+                spots_xy = [k for k in sorted([list(j) for j in list(set([tuple(i) for i in row_spots + col_spots + cor_suit_spots + cor_value_spots]))]) if k != [x,y]]
+
+                return spots_xy
+
+        return []
+
     def get_cards_in_row(self, row=None):
         if self.verify_coordinate(y=row):
             temp = []
@@ -530,6 +665,17 @@ class gameboard():
 
         return []
 
+    def get_spots_open_in_row(self, row=None):
+        if self.verify_coordinate(row):
+            open_spots = self.get_spots_open_on_board()
+            row_spots  = []
+            for i in open_spots:
+                if i[0] == row:
+                    row_spots.append(i)
+
+            return row_spots
+        return []
+
     def get_cards_in_column(self, column=None):
         if self.verify_coordinate(column):
             temp = []
@@ -538,6 +684,17 @@ class gameboard():
                     temp.append(self.get_card_on_spot(column,i))
 
             return temp
+        return []
+
+    def get_spots_open_in_column(self, column=None):
+        if self.verify_coordinate(column):
+            open_spots = self.get_spots_open_on_board()
+            column_spots  = []
+            for i in open_spots:
+                if i[0] == column:
+                    column_spots.append(i)
+
+            return column_spots
         return []
 
     def get_spot_sum_side_cards(self,x=None,y=None):
@@ -603,6 +760,18 @@ class gameboard():
                 return True
         return False
 
+    def get_index_for_card_on_board(self,card=None):
+        if card in self.get_dictionary_of_slot_occupants().values():
+            for i in self.get_dictionary_of_slot_occupants().keys():
+                if self.get_dictionary_of_slot_occupants()[i] == card:
+                    return i
+        return None
+
+    def get_index_by_coordinates(self, x=None, y=None):
+        co, x, y = self.verify_coordinate(x,y)
+        if co:
+            return self.MAX_GRID_HEIGHT_INDEX*y+x
+
     def get_coordinates_by_index(self, index=None):
         if type(index) == int: 
             return [index%self.MAX_GRID_WIDTH_INDEX, index//self.MAX_GRID_HEIGHT_INDEX]
@@ -644,3 +813,6 @@ class gameboard():
                 return True, int(x), int(y)
 
         return False
+
+
+   

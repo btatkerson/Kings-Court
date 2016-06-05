@@ -1,4 +1,5 @@
 import random
+import stats
 from carddeck import carddeck
 from gameboard import gameboard
 from PyQt4 import QtGui
@@ -72,6 +73,9 @@ class game_player():
     def get_hand(self):
         return self.card_hand
 
+    def get_cards_in_hand(self):
+        return self.card_hand.deck
+
     def place_card_by_str(self, deal_str=None):
         if type(deal_str) != str:
             return 0
@@ -93,6 +97,14 @@ class game_player():
             return self.place_card_on_board(self.card_hand.find_card_by_index(temp_list[0]),temp_list[1])
         return 0
         
+    def drawl_card_from_deck(self, card_deck = None):
+        if not card_deck and self.gameboard:
+            if self.gameboard.get_card_deck().is_deck_empty():
+                return 0
+            return self.card_hand.take_card_from_different_deck(self.gameboard.get_card_deck())
+        elif isinstance(card_deck,carddeck):
+            return self.card_hand.take_card(card_deck.get_car_deck().deal_card())
+        return 0
 
     def place_card_on_board(self, card_to_deal=None, position=None):
         if type(card_to_deal) == list:
@@ -194,7 +206,17 @@ class game_player():
         return levels[self.computer_level]
 
 
+    def make_play_on_board(self, card=None, spot=None):
+        if card in self.card_hand.get_deck() and self.gameboard.verify_coordinate(spot):
+            self.set_score(self.gameboard.get_score_to_anchor_card(card, spot, mercy=self.has_mercy()))
+            self.gameboard.set_card_on_board(self.card_hand.deal_card([card])[0],spot)
+            return 1
+        return 0
+
+
+
     def get_computer_move(self):
+        self.get_computer_move_v2()
         possible_moves = self.possible_move_set()
         if not possible_moves:
             return []
@@ -247,6 +269,125 @@ class game_player():
                         temp_int+=count
 
                 return possible_moves[temp_int][random.randint(0,len(possible_moves[temp_int])-1)]
+
+
+    def get_computer_move_v2(self):
+        '''
+        Returns a move based on a newer AI algorithm that uses known probabilities and 
+        other known information about the current game that is available. All information
+        used is fair to the game. For instance, this algorithm knows all the cards that 
+        aren't on the board or in its own hand, but it has no way of knowing which players
+        have which cards.
+        '''
+        open_spots = self.gameboard.get_spots_open_on_board()
+        open_spots_playable = self.gameboard.get_open_spots_legally_playable()
+        #standard_odds = [1, 5/6, 25/36, 125/216, 625/1296]
+        standard_odds = [(5**i)/(6**i) for i in range(5)]
+        standard_odds_comb = [1, 5/6, 15/21, 35/56, 70/126]
+        side_neighbor_counts = [self.gameboard.get_spot_number_of_side_neighbors(i) for i in open_spots]
+        side_neighbor_counts_legal = [self.gameboard.get_spot_number_of_side_neighbors(i) for i in open_spots_playable]
+        average = sum([standard_odds[i] for i in side_neighbor_counts])/len(side_neighbor_counts)
+        average_legal = sum([standard_odds[i] for i in side_neighbor_counts_legal])/len(side_neighbor_counts_legal)
+        average_comb = sum([standard_odds_comb[i] for i in side_neighbor_counts])/len(side_neighbor_counts)
+        average_comb_legal = sum([standard_odds_comb[i] for i in side_neighbor_counts_legal])/len(side_neighbor_counts_legal)
+        temp_deck = carddeck(1,False)
+        temp_deck.deal_card(temp_deck.find_card(value=[6,7,8,9,10,11,12],all_instances=True))
+        temp_deck.deal_card(temp_deck.find_card(suit=[0,1,2],all_instances=True))
+        value_chain = [0 for i in range(6)]
+        value_chain_future = [0 for i in range(6)]
+        for i in temp_deck.get_deck():
+            for j in open_spots:
+                value_chain_future[i.get_value()] += 1
+                for k in self.gameboard.get_spot_neighbor_cards_sides(j):
+                    if k.get_value() == i.get_value():
+                        value_chain_future[i.get_value()] -= 1
+                        break
+
+                if self.gameboard.get_score_to_anchor_card(i,j,legal_score=True):
+                    value_chain[i.get_value()]+=1
+
+        value_chain=[i/len(open_spots) for i in value_chain]
+        value_chain_spots=[i*len(open_spots) for i in value_chain]
+        value_chain_future=[i/len(open_spots) for i in value_chain_future]
+        value_chain_future_spots=[i*len(open_spots) for i in value_chain_future]
+        
+        value_chain_legal = [0 for i in range(6)]
+        for i in temp_deck.get_deck():
+            for j in open_spots_playable:
+                if self.gameboard.get_score_to_anchor_card(i,j,legal_score=True):
+                    value_chain_legal[i.get_value()]+=1
+
+        value_chain_legal=[i/len(open_spots_playable) for i in value_chain_legal]
+        value_chain_spots_legal=[i*len(open_spots_playable) for i in value_chain_legal]
+
+
+
+        print(len(open_spots),'\n',value_chain,'\n',value_chain_spots,sum(value_chain_spots)/len(value_chain_spots),'\n',value_chain_future,'\n',value_chain_future_spots,sum(value_chain_future_spots)/len(value_chain_future_spots),'\n',len(open_spots_playable),'\n',value_chain_legal,'\n',value_chain_spots_legal,sum(value_chain_spots_legal)/len(value_chain_spots_legal))
+
+
+        moves_dict = {i:[] for i in self.card_hand.get_deck()}
+        for i in moves_dict.keys():
+            for j in open_spots:
+                legal=self.gameboard.get_score_to_anchor_card(i,j,mercy=self.mercy,legal_score=True) 
+
+                if legal:
+                    score=self.gameboard.get_score_to_anchor_card(i,j,mercy=self.mercy) 
+                    moves_dict[i].append([score,j])
+
+            #print(i.get_info_color(), sum([k[0] for k in moves_dict[i]])/len(moves_dict[i]),sorted(moves_dict[i],key=lambda x:x[0]), sep='\n')
+            move_scores = sorted([k[0] for k in moves_dict[i]])
+            if moves_dict != []:
+                top_score = move_scores[-1]
+            else:
+                top_score = 0
+            #print(i.get_info_color(), stats.average(move_scores), stats.std_dev_pop(move_scores), top_score, stats.norm_cdf(top_score,lis=move_scores),sorted(moves_dict[i],key=lambda x:x[0]), sep='\n')
+            print(i.get_info_color(), stats.average(move_scores), stats.std_dev_pop(move_scores), top_score, stats.norm_cdf(top_score,lis=move_scores),sorted(moves_dict[i],key=lambda x:x[0]), sep='\n')
+
+        len(moves_dict[i])/len(open_spots)
+
+
+            
+
+        possible_moves = self.possible_move_set()
+        print("side_neigh_count=",side_neighbor_counts)
+        print("average=",average,average*len(open_spots))
+        print("average legal=",average_legal,average_legal*len(open_spots))
+        print("average comb=",average_comb,average_comb*len(open_spots))
+        print("average comb legal=",average_comb_legal,average_comb_legal*len(open_spots))
+
+        print("Spread of Red")
+        print('Count',len(self.gameboard.get_cards_on_board_of_suit('R')))
+        print('Distance from midpoint - Avrg/Std Dev', self.gameboard.get_spread_of_cards_by_suit('R',vector=0))
+        print('Midpoint and vector - Avrg/Std dev', self.gameboard.get_spread_of_cards_by_suit('R',vector=1))
+
+        print("Spread of Blue")
+        print('Count',len(self.gameboard.get_cards_on_board_of_suit('B')))
+        print('Distance from midpoint - Avrg/Std Dev', self.gameboard.get_spread_of_cards_by_suit('B',vector=0))
+        print('Midpoint and vector - Avrg/Std dev', self.gameboard.get_spread_of_cards_by_suit('B',vector=1))
+
+        print("Spread of Green")
+        print('Count',len(self.gameboard.get_cards_on_board_of_suit('G')))
+        print('Distance from midpoint - Avrg/Std Dev', self.gameboard.get_spread_of_cards_by_suit('G',vector=0))
+        print('Midpoint and vector - Avrg/Std dev', self.gameboard.get_spread_of_cards_by_suit('G',vector=1))
+
+        print("Spread of Yellow")
+        print('Count',len(self.gameboard.get_cards_on_board_of_suit('Y')))
+        print('Distance from midpoint - Avrg/Std Dev', self.gameboard.get_spread_of_cards_by_suit('Y',vector=0))
+        print('Midpoint and vector - Avrg/Std dev', self.gameboard.get_spread_of_cards_by_suit('Y',vector=1))
+
+
+    def get_computer_move_v3(self):
+        open_spots_on_board = self.gameboard.get_open_spots_legally_playable()
+        cards_on_board = self.gameboard.get_cards_on_board()
+        cards_not_on_board = self.gameboard.get_cards_not_on_board()
+        cards_in_hand = self.get_cards_in_hand()
+        cards_not_in_hand = [i for i in cards_not_on_board if i not in self.card_hand.deck]
+        affected_spaces_by_card = {i:{self.gameboard.get_index_by_coordinates(j):self.gameboard.get_spots_affected_by_card_play(i,j) for j in open_spots_on_board} for i in cards_in_hand}
+        
+        return affected_spaces_by_card
+
+
+
 
             
     def possible_move_set(self):

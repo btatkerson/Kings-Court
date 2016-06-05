@@ -374,7 +374,7 @@ class carddeck():
             for i in card:
                 self.deck.append(i)
             return 1
-        else:
+        elif card:
             self.deck.append(card)
             return 1
         return 0

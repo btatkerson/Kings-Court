@@ -1,3 +1,3 @@
 #!/bin/bash
 cd ~/Dropbox/Programming/beta_card_game/gridgame
-python3 ./test.py
+python3 ./main_game.py

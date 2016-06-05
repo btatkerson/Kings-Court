@@ -18,14 +18,15 @@ class card():
         return [self.get_value(readable),self.get_suit(readable)]
 
     def get_info_color(self,background_highlight=False):
-        color_list = [col.Fore.RED, col.Fore.CYAN, col.Fore.GREEN, col.Fore.YELLOW, col.Fore.MAGENTA]
+        color_list = [col.Fore.RED, col.Fore.BLUE, col.Fore.GREEN, col.Fore.YELLOW, col.Fore.MAGENTA]
+        color_style = [col.Style.NORMAL, col.Style.NORMAL, col.Style.NORMAL, col.Style.NORMAL, col.Style.NORMAL]
         prop = {0:'1', 12:'0'}[self.get_value()] if self.get_value() in [0,12] else self.get_value(1)
         if background_highlight:
             color_list = [col.Back.RED, col.Back.CYAN, col.Back.GREEN, col.Back.YELLOW, col.Back.MAGENTA]
             
             return col.Fore.BLACK + col.Style.DIM + str(color_list[self.get_suit()] + prop + str(self.get_suit(1))) + col.Style.RESET_ALL
 
-        return color_list[self.get_suit()] + prop + str(self.get_suit(1)) + col.Style.RESET_ALL
+        return color_list[self.get_suit()] + color_style[self.get_suit()] + prop + str(self.get_suit(1)) + col.Style.RESET_ALL
 
     def get_suit(self,readable=False):
         if readable:
@@ -34,9 +35,19 @@ class card():
 
     def get_suit_from_index(self,index):
         if index in self.SUITLIST:
-            self.SUITLIST.index(index)
+            index = self.SUITLIST.index(index)
         if 0 <= index < len(self.SUITLIST):
             return self.SUITLIST[index]
+        return None
+
+    def verify_suit(self,suit=None):
+        if suit or suit == 0:
+            if self.get_suit_from_index(suit):
+                return self.SUITLIST.index(self.get_suit_from_index(suit))
+        return False
+
+    def get_suit_list(self):
+        return self.SUITLIST
 
     def set_suit(self,suit=None):
         if suit:
@@ -56,10 +67,19 @@ class card():
 
     def get_value_from_index(self, index):
         if index in self.VALUELIST:
-            self.VALUELIST.index(index)
+            index = self.VALUELIST.index(index)
         if 0 <= index < len(self.VALUELIST):
             return self.VALUELIST[index]
+        return None
+    
+    def get_value_list(self):
+        return self.VALUELIST
 
+    def verify_value(self,value=None):
+        if value or value == 0:
+            if self.get_value_from_index(value):
+                return self.VALUELIST.index(self.get_value_from_index(value))
+        return False
 
     def set_value(self,value=None):
         if value:

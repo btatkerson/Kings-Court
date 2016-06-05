@@ -621,6 +621,7 @@ class main_game(QtGui.QGraphicsScene):
             if self.player[self.player_turn].is_human():
                 self.card_dock.set_player(self.player[self.player_turn])
                 self.card_dock.update_dock()
+                self.player[self.player_turn].get_computer_move_v2()
                 '''
                 temp=game_over_screen(self.player,scene=self)
                 temp.setX(0)
