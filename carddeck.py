@@ -21,8 +21,6 @@ class cardWithID(card):
 
 
 class carddeck():
-
-    
     def __init__(self,number_of_decks=1, acesHigh=True, five_suits=False):
         self.master_deck = []
         self.acesHigh = acesHigh

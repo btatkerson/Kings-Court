@@ -13,8 +13,16 @@ class game_player():
         self.last_score = 0
         self.score = 0
         self.card_hand = carddeck(0,0)
-        self.gameboard = main_gameboard or gameboard()
-        
+        if not main_gameboard:
+            self.gameboard = gameboard()
+        else:
+            self.gameboard = main_gameboard
+
+    def set_gameboard(self, t_gameboard=None):
+        if isinstance(t_gameboard, gameboard):
+            self.gameboard = t_gameboard
+            return 1
+        return 0
 
     def reset_player_hand_and_score(self):
         self.mercy = False
@@ -206,12 +214,37 @@ class game_player():
         return levels[self.computer_level]
 
 
-    def make_play_on_board(self, card=None, spot=None):
+    def make_play_on_board(self, card=None, spot=None, computer_determination=False):
+        if computer_determination:
+            cm = self.get_computer_move()
+            self.make_play_on_board(cm[0],cm[1])
         if card in self.card_hand.get_deck() and self.gameboard.verify_coordinate(spot):
             self.set_score(self.gameboard.get_score_to_anchor_card(card, spot, mercy=self.has_mercy()))
             self.gameboard.set_card_on_board(self.card_hand.deal_card([card])[0],spot)
             return 1
         return 0
+
+    def get_cards_not_in_hand_or_board(self):
+        cards_not_on_board = self.gameboard.get_cards_not_on_board()
+        temp = []
+        for i in cards_not_on_board:
+            if i not in self.get_cards_in_hand():
+                temp.append(i)
+
+        return temp
+
+    def get_frequency_of_values_for_cards_in_hand(self, relative=False, printable=False):
+        return stats.frequency([i.get_value() for i in self.get_cards_in_hand()], relative, printable)
+
+    def get_frequency_of_values_for_cards_not_in_hand_or_board(self, relative=False, printable=False):
+        return stats.frequency([i.get_value() for i in self.get_cards_not_in_hand_or_board()], relative, printable)
+
+    def get_priority_of_cards(self):
+        cards_in_hand = {i:0 for i in self.get_cards_in_hand()}
+        non_breaks = {i.get_value():self.gameboard.get_open_non_breaking_legal_spots_for_card(i,1) for i in cards_in_hand}
+
+
+
 
 
 
@@ -429,6 +462,58 @@ class game_player():
 
     def has_mercy(self):
         return self.mercy
+
+    def get_all_possible_moves_and_scores_for_cards_not_in_hand(self, by_coordinate=False):
+        if by_coordinate:
+            temp = {self.gameboard.get_index_by_coordinates(i):None for i in self.gameboard.get_open_spots_legally_playable()}
+            for i in temp:
+                temp[i] = self.gameboard.get_all_possible_scores_for_open_spot(self.gameboard.get_coordinates_by_index(i),None,self.mercy)
+                h=[]
+                for j in temp[i]:
+                    if j in self.card_hand.deck:
+                        h.append(j)
+                for k in h:
+                    temp[i].pop(k)
+            return temp
+
+        temp = {i:None for i in self.gameboard.get_cards_not_on_board()}
+        for i in self.card_hand.deck:
+            if i in temp:
+                temp.pop(i)
+        
+        for i in temp:
+            temp[i] = self.gameboard.get_all_possible_scores_for_card(i,self.mercy)
+        return temp
+
+
+
+
+
+    def get_all_possible_moves_and_scores(self, by_coordinate=False):
+        '''
+        Returns dict with card object keys and dictionary values. The dictionary keys use an coordinate index and values are the score.
+        Essentially, {<card object>: {int coordinate index: int score}}
+
+        If by_coordinate is True:
+        {int coordinate index: {<card object>: int score}}
+        '''
+        
+        if by_coordinate:
+            temp = {self.gameboard.get_index_by_coordinates(i):None for i in self.gameboard.get_open_spots_legally_playable()}
+            for i in temp:
+                temp[i] = self.gameboard.get_all_possible_scores_for_open_spot(self.gameboard.get_coordinates_by_index(i),None,self.mercy)
+                h=[]
+                for j in temp[i]:
+                    if j not in self.card_hand.deck:
+                        h.append(j)
+                for k in h:
+                    temp[i].pop(k)
+            return temp
+
+        temp = {i:None for i in self.card_hand.deck}
+        for i in temp:
+            temp[i] = self.gameboard.get_all_possible_scores_for_card(i,self.mercy)
+        return temp
 
     def read_all_moves(self):
         move_set = self.possible_move_set()

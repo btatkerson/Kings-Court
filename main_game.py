@@ -11,24 +11,30 @@ class AppWidget(QtGui.QWidget):
         self.setWindowTitle('King\'s Court')
         self.gamemode = 1
         self.player_count = 4
+        self.max_card = 7
         self.color_style=['color: rgb(175,0,0);', 'color: rgb( 25, 117, 209);', 'color: rgb(25, 117, 25);', 'color: rgb(153, 153, 0);']
         self.players = []
         self.setGeometry(0,0,825,768)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.player_side_widget = []
+
         self.sidepanel=None
+        self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
+        self.sidepanel.setMaximumHeight(600)
 
         self.gameboardGraphicView = QtGui.QGraphicsView()
         self.gameboardGraphicScene = main_game(self.player_count,self) 
         #self.gameboardGraphicScene.setSceneRect(-100,-8,640,656)
         
+        '''
         game_setup_dialog(self).exec_()
         if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
             for i in self.gameboardGraphicScene.get_players():
                 print(i.get_name())
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
-
+        '''
+        self.game_setup_dialog_window()
     
         self.gameboardGraphicView.setScene(self.gameboardGraphicScene)
         self.gameboardGraphicView.setGeometry(0,0,700,656)
@@ -62,6 +68,17 @@ class AppWidget(QtGui.QWidget):
                 self.player_side_widget[i].update_scores()
             return 1
         return 0
+
+    def game_setup_dialog_window(self):
+        game_setup_dialog(self).exec_()
+        if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
+            for i in self.gameboardGraphicScene.get_players():
+                print(i.get_name())
+            self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
+            self.sidepanel.setMaximumHeight(600)
+
+
+
 
 
 class player_side_panel_widget(QtGui.QWidget):
@@ -101,6 +118,10 @@ class player_side_panel_widget(QtGui.QWidget):
         for i in self.player_widgets:
             i.update_scores()
 
+    def purge_player_widgets(self):
+        for i in self.player_widgets:
+            self.score_widget_layout.removeWidget(i)
+
     def reset_game(self,e):
         if not reset_game_verification(self.parent).exec_():
             return 0
@@ -135,7 +156,7 @@ class game_setup_dialog(QtGui.QDialog):
             
 
         self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
-        self.generic_names = ['Lynette', 'Gabby', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge']
+        self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge']
         random.shuffle(self.generic_names)
         for i in range(1,len(self.players)):
             self.players[i].player.set_name(self.generic_names[i])
@@ -152,6 +173,8 @@ class game_setup_dialog(QtGui.QDialog):
 
         self.vbox = QtGui.QVBoxLayout(self)
 
+
+        '''
         self.player_count_widget_layout = QtGui.QHBoxLayout(self)
         self.player_count_widget = QtGui.QWidget(self)
         self.player_count_label = QtGui.QLabel("Player Count:",self)
@@ -164,6 +187,8 @@ class game_setup_dialog(QtGui.QDialog):
         self.player_count_widget_layout.addWidget(self.player_count_spin)
         self.player_count_spin.valueChanged.connect(self.spinChangeEvent)
         self.player_count_widget.setLayout(self.player_count_widget_layout)
+
+        '''
 
         self.game_mode_widget_layout = QtGui.QHBoxLayout(self)
         self.game_mode_widget=QtGui.QWidget(self)
@@ -179,13 +204,43 @@ class game_setup_dialog(QtGui.QDialog):
         self.game_mode_spinner.addItem("7: Diamond Sharper")
         self.game_mode_spinner.addItem("8: Corners")
         self.game_mode_spinner.addItem("9: Inverse Corners")
-        self.game_mode_spinner.setCurrentIndex(1)
-
+        self.game_mode_spinner.setCurrentIndex(3)
         self.game_mode_widget_layout.addWidget(self.game_mode_label)
         self.game_mode_widget_layout.addWidget(self.game_mode_spinner)
 
-        self.vbox.addWidget(self.player_count_widget)
+        self.max_cards_widget_layout = QtGui.QHBoxLayout(self)
+        self.max_cards_widget = QtGui.QWidget(self)
+        self.max_cards_widget.setLayout(self.max_cards_widget_layout)
+        self.max_cards_label = QtGui.QLabel("Cards in Hand:",self)
+        self.max_cards_combo = QtGui.QComboBox(self)
+        self.max_cards_combo.addItem("1: All Cards")
+        self.max_cards_combo.addItem("2: 1 Cards")
+        self.max_cards_combo.addItem("3: 3 Cards")
+        self.max_cards_combo.addItem("4: 5 Cards")
+        self.max_cards_combo.addItem("5: 7 Cards")
+        self.max_cards_combo.setCurrentIndex(4)
+        self.max_cards_widget_layout.addWidget(self.max_cards_label)
+        self.max_cards_widget_layout.addWidget(self.max_cards_combo)
+
+
+        self.player_count_widget_layout = QtGui.QHBoxLayout(self)
+        self.player_count_widget = QtGui.QWidget(self)
+        self.player_count_label = QtGui.QLabel("Player Count:",self)
+        self.player_count_spin = QtGui.QSpinBox(self)
+        self.player_count_spin.setMinimum(2)
+        self.player_count_spin.setMaximum(4)
+        self.player_count_spin.setValue(4)
+        self.player_count_spin.setWrapping(True)
+        self.player_count_widget_layout.addWidget(self.player_count_label)
+        self.player_count_widget_layout.addWidget(self.player_count_spin)
+        self.player_count_spin.valueChanged.connect(self.spinChangeEvent)
+        self.player_count_widget.setLayout(self.player_count_widget_layout)
+
+
+
         self.vbox.addWidget(self.game_mode_widget)
+        self.vbox.addWidget(self.max_cards_widget)
+        self.vbox.addWidget(self.player_count_widget)
 
         for i in self.players:
             self.vbox.addWidget(i)
@@ -215,8 +270,21 @@ class game_setup_dialog(QtGui.QDialog):
     def closeEvent(self,e=None):
         self.update_players()
         self.parent.gamemode = self.game_mode_spinner.currentIndex()
+        print('interp:',self.interpretMaxCardCombo())
+        self.parent.max_card = self.interpretMaxCardCombo()
         self.close()
 
+    def interpretMaxCardCombo(self):
+        temp = self.max_cards_combo.currentIndex()
+        if temp == 1:
+            return 1
+        elif temp == 2:
+            return 3
+        elif temp == 3:
+            return 5
+        elif temp == 4:
+            return 7
+        return 0
         
 
     def update_players(self,e=None):
@@ -455,7 +523,7 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
         self.bott_row = [(64*7-8)/9*i+32 for i in range(9)]
         self.top_y = 8 
         self.mid_y = 40
-        self.bott_y = 56
+        self.bott_y = 52
 
         self.update_dock()
 
@@ -513,9 +581,11 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
                 if length_deck <= 9:
                     i.setY(self.mid_y)
                 else:
+                    i.setScale(.85)
                     i.setY(self.top_y)
                 i.setZValue(count)
             else:
+                i.setScale(.85)
                 i.setX(self.bott_row[count % 9])
                 i.setY(self.bott_y)
                 i.setZValue(count)
@@ -542,6 +612,7 @@ class main_game(QtGui.QGraphicsScene):
         self.setBackgroundBrush(self.background_image_brush)
         self.main_board = gameboard.gameboard(0,2)
         self.main_board.game_deck.get_deck(1)
+        self.max_cards = self.parent.max_card
         self.player = []
         self.player_turn = 0
         #self.setup_players(player_count)
@@ -593,6 +664,7 @@ class main_game(QtGui.QGraphicsScene):
                     self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1],mercy=self.player[self.player_turn].has_mercy()))
                     self.main_board.set_card_on_board(comp_move[0],comp_move[1])
                     self.player[self.player_turn].card_hand.deal_card([comp_move[0]])
+                    self.player[self.player_turn].drawl_card_from_deck()
                     self.player_turn=(self.player_turn+1) % self.player_count
                     self.player_turn=self.player_turn % self.player_count
                     if self.player_turn == 0:
@@ -674,11 +746,23 @@ class main_game(QtGui.QGraphicsScene):
         count = 0
         print('full deck',self.main_board.game_deck.get_deck(1))
         print('len full deck',len(self.main_board.game_deck.get_deck(1)))
-        while not self.main_board.game_deck.is_deck_empty():
-            dealt=self.main_board.game_deck.deal_card()[0]
-            print("dealt",dealt)
-            self.player[count % self.player_count].card_hand.take_card(dealt)
-            count += 1
+        
+        if self.max_cards == 0:
+            while not self.main_board.game_deck.is_deck_empty():
+                dealt=self.main_board.game_deck.deal_card()[0]
+                print("dealt",dealt)
+                self.player[count % self.player_count].card_hand.take_card(dealt)
+                count += 1
+        else:
+            while count < self.player_count * self.max_cards:
+                if self.main_board.game_deck.is_deck_empty():
+                    break
+                dealt=self.main_board.game_deck.deal_card()[0]
+                print("dealt",dealt)
+                self.player[count % self.player_count].card_hand.take_card(dealt)
+                count += 1
+
+
         print('Player count', len(self.player))
         for i in self.player:                
             sorter=carddeck.carddeck(0)
@@ -732,6 +816,7 @@ class main_game(QtGui.QGraphicsScene):
             print(self.main_board.set_card_on_board(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])))
             card.set_click_off()
             player.get_hand().deal_card([card.get_card_class()])
+            player.drawl_card_from_deck()
             self.card_dock.update_dock()
             self.player_turn+=1
             self.layout_board()
@@ -740,6 +825,7 @@ class main_game(QtGui.QGraphicsScene):
             old_pos = card.old_position
             card.setX(old_pos[0])
             card.setY(old_pos[1])
+
             return 0
 
 
@@ -773,6 +859,7 @@ class main_game(QtGui.QGraphicsScene):
 
         '''                                                                                Add option to set the gamemode!!      ##########'''
         self.main_board.set_game_mode(self.parent.gamemode)
+        self.max_cards = self.parent.max_card
 
         self.main_board.reset_game()
 
@@ -979,6 +1066,8 @@ class playing_card_graphic(QtGui.QGraphicsItem):
         self.show()
 
     def mousePressEvent(self, event): 
+        self.temp_scale = self.scale()
+        self.setScale(1)
         if self.click_disabled:
             return
         self.old_position = [self.x(),self.y(),self.zValue()]
@@ -1000,6 +1089,7 @@ class playing_card_graphic(QtGui.QGraphicsItem):
         if self.top_scene:
             print('top_scene')
             if self.top_scene.drop_card_on_board(self,self.player) == 1:
+                self.setScale(1)
                 self.hide()
                 for i in range(5):
                     QtGui.QApplication.processEvents()
@@ -1007,6 +1097,7 @@ class playing_card_graphic(QtGui.QGraphicsItem):
                 self.top_scene.computer_turns()
                 self.top_scene.print_player_scores()
             else:
+                self.setScale(self.temp_scale)
                 self.setX(self.old_position[0])
                 self.setY(self.old_position[1])
                 self.setZValue(self.old_position[2])

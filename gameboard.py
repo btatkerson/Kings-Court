@@ -306,8 +306,13 @@ class gameboard():
                 if self.get_spot_number_of_side_neighbors(i) == 4:
                     legal_spots_to_play.append(i)
             else:
-                if self.get_spot_number_of_neighbors(i)>0:
+                neighs = self.get_spot_neighbor_cards_all(i)
+                if len(neighs) == 1:
+                    if neighs[0].get_value(1) != 'K':
+                        legal_spots_to_play.append(i)
+                elif len(neighs) > 0:
                     legal_spots_to_play.append(i)
+
 
         return legal_spots_to_play
 
@@ -534,7 +539,7 @@ class gameboard():
         temp_deck.deck = list(set.difference(set(self.game_deck.master_deck),set(self.get_cards_on_board())))
         temp_deck.sort_deck_by_card_suit()
         temp_deck.sort_deck_by_card_value()
-        temp_deck.print_readable_deck_color()
+        #temp_deck.print_readable_deck_color()
         return temp_deck.deck
 
     def get_cards_on_board(self):
@@ -559,8 +564,131 @@ class gameboard():
 
         return temp_list
 
+
+    def get_all_possible_scores_for_card(self, card=None, mercy=None):
+        if card in self.get_cards_not_on_board():
+            return {self.get_index_by_coordinates(i):self.get_score_to_anchor_card(card,i,mercy=mercy) for i in self.get_open_spots_legally_playable() if self.get_score_to_anchor_card(card,i,mercy=mercy,legal_score=1)}
+
+        return {}
+
+    def get_top_scores_for_card(self, card=None, mercy=None, perc=50, by_combination_probability=False):
+        if by_combination_probability:
+            perc= (7-card.get_info()[0])/7
+
+        all_scores=self.get_all_possible_scores_for_card(card,mercy)
+        top_scores = stats.top_percent_of_list(list(all_scores.values()),perc)
+        
+        scores={}
+        for i in top_scores[::-1]:
+            for j in all_scores.keys():
+                if all_scores[j] == i:
+                    scores[j]=i
+                    all_scores.pop(j)
+                    top_scores.pop()
+                    break
+            
+        return scores
+
+
+    def get_all_possible_scores_for_open_spot(self, x=None, y=None, mercy=None):
+        co, x, y = self.verify_coordinate(x,y)
+
+        if co:
+            if [x,y] in self.get_open_spots_legally_playable():
+                cards_not_on_board = self.get_cards_not_on_board()
+                return {i:self.get_score_to_anchor_card(i,x,y,mercy) for i in cards_not_on_board if self.get_score_to_anchor_card(i,x,y,mercy,1)}
+                
+        return {}
+
+    def get_top_scores_for_open_spot(self, x=None, y=None, mercy=None, perc=50, by_combination_probability=False):
+        if by_combination_probability:
+            perc= (7-card.get_info()[0])/7
+
+        all_scores = self.get_all_possible_scores_for_open_spot(x,y,mercy)
+        top_scores = stats.top_percent_of_list(list(all_scores.values()),perc)
+        
+        scores={}
+        for i in top_scores[::-1]:
+            for j in all_scores.keys():
+                if all_scores[j] == i:
+                    scores[j]=i
+                    all_scores.pop(j)
+                    top_scores.pop()
+                    break
+            
+        return scores
+
+       
+    def get_average_of_all_possible_scores_for_open_spot(self,x=None, y=None, mercy=None):
+        scores = self.get_all_possible_scores_for_open_spot(x,y,mercy)
+        if scores:
+            return stats.average(scores.values()),scores
+        return None,scores
+
+    def get_std_dev_of_all_possible_scores_for_open_spot(self, x=None, y=None, mercy=None):
+        average, scores = self.get_average_of_all_possible_scores_for_open_spot(x,y,mercy)
+        if scores:
+            return stats.std_dev(scores.values(),average), scores
+        return None, scores
+        
+    def get_dict_of_legal_open_spot_side_sums(self, mod=False):
+        return {self.get_index_by_coordinates(i):self.get_spot_sum_side_cards(i,mod=mod) for i in self.get_open_spots_legally_playable()}
+
     def get_average_value_of_cards_on_board_of_suit(self, suit = None, temp_card = None):
         return stats.average([i.get_value()+1 for i in self.get_cards_on_board_of_suit(suit,temp_card)])
+
+    def get_simple_stack_of_cards(self):
+        '''
+        Returns a single suit stack of every card value possible. This is used for statistical purposes.
+        '''
+        t_hold = []
+        temp_deck = carddeck(0)
+        temp_deck.deck = self.get_cards_not_on_board()
+        for i in range(6):
+            t_card = temp_deck.find_card_by_value(i,0)
+            if t_card:
+                t_hold.append(t_card[0])
+
+
+        return t_hold
+
+
+    def get_open_non_breaking_legal_spots_for_card(self, temp_card=None, scores_included = False):
+        if temp_card != None:
+            try:
+                card_val = temp_card.get_value()
+            except AttributeError:
+                print("temp_card must be a card class")
+
+        if temp_card in self.get_card_deck().master_deck:
+            temp_spots = [self.get_index_by_coordinates(i) for i in self.get_open_spots_legally_playable()]
+            mods_dict = {i:self.get_spot_sum_side_cards(self.get_coordinates_by_index(i),mod=True) for i in temp_spots}
+            if not scores_included:
+                spots = [self.get_coordinates_by_index(i) for i in temp_spots if mods_dict[i] < 7-card_val and self.is_legal_to_anchor_card(temp_card,self.get_coordinates_by_index(i))]
+            else:
+                spots = {i:self.get_score_to_anchor_card(temp_card,self.get_coordinates_by_index(i)) for i in temp_spots if mods_dict[i] < 7-card_val and self.is_legal_to_anchor_card(temp_card,self.get_coordinates_by_index(i))}
+
+            return spots
+
+    def get_open_checkpoint_legal_spots_for_card(self, temp_card=None, scores_included = False):
+        if temp_card != None:
+            try:
+                card_val = temp_card.get_value()
+            except AttributeError:
+                print("temp_card must be a card class")
+
+        if temp_card in self.get_card_deck().master_deck: 
+            temp_spots = [self.get_index_by_coordinates(i) for i in self.get_open_spots_legally_playable()]
+            mods_dict = {i:self.get_spot_sum_side_cards(self.get_coordinates_by_index(i),mod=True) for i in temp_spots}
+            if not scores_included:
+                spots = [self.get_coordinates_by_index(i) for i in temp_spots if card_val == 6-mods_dict[i] and self.is_legal_to_anchor_card(temp_card,self.get_coordinates_by_index(i))]
+            else:
+                spots = {i:self.get_score_to_anchor_card(temp_card,self.get_coordinates_by_index(i)) for i in temp_spots if card_val == 6-mods_dict[i] and self.is_legal_to_anchor_card(temp_card,self.get_coordinates_by_index(i))}
+
+            return spots
+
+
+
 
     def get_spread_of_cards_by_suit(self, suit=None, temp_card=None, vector=False):
         temp_list = self.get_cards_on_board_of_suit(suit,temp_card)
@@ -670,7 +798,7 @@ class gameboard():
             open_spots = self.get_spots_open_on_board()
             row_spots  = []
             for i in open_spots:
-                if i[0] == row:
+                if i[1] == row:
                     row_spots.append(i)
 
             return row_spots
@@ -697,7 +825,12 @@ class gameboard():
             return column_spots
         return []
 
-    def get_spot_sum_side_cards(self,x=None,y=None):
+    def get_spot_sum_side_cards(self,x=None,y=None, mod=False):
+        '''
+        Returns the sum of the side cards around any spot.
+
+        mod - Enable if you want the sum returned in mod 7
+        '''
         co, x, y = self.verify_coordinate(x,y)
         temp_card_list = self.get_spot_neighbor_cards_sides(x,y)
         current_sum = 0
@@ -707,6 +840,9 @@ class gameboard():
                     current_sum += 10
                 else:
                     current_sum += i.get_value()+1
+
+        if mod:
+            return current_sum%7
 
         return current_sum
 
