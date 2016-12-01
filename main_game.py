@@ -348,7 +348,7 @@ class player_setup_options(QtGui.QWidget):
         self.player_level_label = QtGui.QLabel("AI Level:")
         self.player_level_spin = QtGui.QSpinBox(self)
         self.player_level_spin.setMinimum(1)
-        self.player_level_spin.setMaximum(5)
+        self.player_level_spin.setMaximum(6)
         self.player_level_spin.setWrapping(True)
         self.player_level_spin.setValue(player.get_computer_level() if player else 2)
 

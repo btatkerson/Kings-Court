@@ -191,8 +191,8 @@ class game_player():
         return (devs/len(score_list))**.5
 
     def set_computer_level(self,level=3):
-        if 0 <= level % 6 <= 5:
-            self.computer_level = level % 6
+        if 0 <= level % 7 <= 6:
+            self.computer_level = level % 7
             return 1
         else:
             self.computer_level = 3
@@ -209,7 +209,10 @@ class game_player():
                   2:(.385,1.645,4),
                   3:(.595,1.96,4),
                   4:(.675,2.05,5),
-                  5:(.841,2.5,5)}
+                  5:(.841,2.5,5),
+                  6:(2.5,4,50)                  
+                  }
+        
 
         return levels[self.computer_level]
 
@@ -249,7 +252,7 @@ class game_player():
 
 
     def get_computer_move(self):
-        self.get_computer_move_v2()
+        #self.get_computer_move_v2()[::-1][0]
         possible_moves = self.possible_move_set()
         if not possible_moves:
             return []
@@ -264,6 +267,15 @@ class game_player():
         perc_position = sum([random.randint(0,1000) for i in range(2)])/2000
         temp_moves = self.best_possible_move_set()
         best_score = self.best_possible_move_set(1)
+
+        print("Comp level = ",self.get_computer_level())
+        if self.get_computer_level() == 6:
+            best_score = sorted(list(possible_moves.keys()))[::-1][0]
+            print("best score",best_score)
+            print("moves:", possible_moves)
+            if len(possible_moves) > 1:
+                return possible_moves[best_score][0]
+            
 
         if std_dev_of_scores:
             z_score = (best_score-mean_score)/std_dev_of_scores
@@ -313,6 +325,8 @@ class game_player():
         have which cards.
         '''
         open_spots = self.gameboard.get_spots_open_on_board()
+        if open_spots == []:
+            return 0
         open_spots_playable = self.gameboard.get_open_spots_legally_playable()
         #standard_odds = [1, 5/6, 25/36, 125/216, 625/1296]
         standard_odds = [(5**i)/(6**i) for i in range(5)]
@@ -370,7 +384,10 @@ class game_player():
             #print(i.get_info_color(), sum([k[0] for k in moves_dict[i]])/len(moves_dict[i]),sorted(moves_dict[i],key=lambda x:x[0]), sep='\n')
             move_scores = sorted([k[0] for k in moves_dict[i]])
             if moves_dict != []:
-                top_score = move_scores[-1]
+                if len(moves_dict)==1:
+                    top_score = 0
+                else:
+                    top_score = move_scores[-1]
             else:
                 top_score = 0
             #print(i.get_info_color(), stats.average(move_scores), stats.std_dev_pop(move_scores), top_score, stats.norm_cdf(top_score,lis=move_scores),sorted(moves_dict[i],key=lambda x:x[0]), sep='\n')
@@ -433,7 +450,11 @@ class game_player():
         temp_deck.deck = self.card_hand.get_deck()
         for i in temp_deck.get_unique_cards_in_deck():
             for j in self.gameboard.get_spots_open_on_board():
-                potential_score = self.gameboard.get_score_to_anchor_card(i,j)
+                if self.has_mercy():
+                    potential_score = self.gameboard.get_score_to_anchor_card(i,j,mercy=1)
+                else:
+                    potential_score = self.gameboard.get_score_to_anchor_card(i,j,mercy=0)
+
                 if potential_score in list(temp_dict.keys()):
                     temp_dict[potential_score].append([i,j])
                 elif potential_score:
