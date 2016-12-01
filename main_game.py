@@ -17,24 +17,19 @@ class AppWidget(QtGui.QWidget):
         self.setGeometry(0,0,825,768)
         self.horizontalLayout = QtGui.QHBoxLayout()
         self.player_side_widget = []
-
         self.sidepanel=None
-        self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
-        self.sidepanel.setMaximumHeight(600)
 
         self.gameboardGraphicView = QtGui.QGraphicsView()
         self.gameboardGraphicScene = main_game(self.player_count,self) 
         #self.gameboardGraphicScene.setSceneRect(-100,-8,640,656)
         
-        '''
         game_setup_dialog(self).exec_()
         if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
             for i in self.gameboardGraphicScene.get_players():
                 print(i.get_name())
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
-        '''
-        self.game_setup_dialog_window()
+
     
         self.gameboardGraphicView.setScene(self.gameboardGraphicScene)
         self.gameboardGraphicView.setGeometry(0,0,700,656)
@@ -71,12 +66,19 @@ class AppWidget(QtGui.QWidget):
 
     def game_setup_dialog_window(self):
         game_setup_dialog(self).exec_()
+
+        self.horizontalLayout.removeWidget(self.sidepanel)
+        self.horizontalLayout.removeWidget(self.gameboardGraphicView)
         if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
             for i in self.gameboardGraphicScene.get_players():
                 print(i.get_name())
+            self.sidepanel.update_all()
+            '''
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
-
+            '''
+        self.horizontalLayout.addWidget(self.sidepanel)
+        self.horizontalLayout.addWidget(self.gameboardGraphicView)
 
 
 
@@ -116,19 +118,24 @@ class player_side_panel_widget(QtGui.QWidget):
     
     def update_all(self):
         for i in self.player_widgets:
+            i.hide()
             i.update_scores()
+        for i in range(len(self.player_widgets)):
+            if i < self.parent.player_count:
+                self.player_widgets[i].show()
 
-    def purge_player_widgets(self):
-        for i in self.player_widgets:
-            self.score_widget_layout.removeWidget(i)
+
 
     def reset_game(self,e):
         if not reset_game_verification(self.parent).exec_():
             return 0
+        self.parent.game_setup_dialog_window()
         self.parent.gameboardGraphicScene.reset_game()
         players = self.parent.gameboardGraphicScene.player
+        print("Widgets",self.player_widgets,"Players",players)
         for x,y in enumerate(self.player_widgets):
             y.set_player(players[x])
+            
 
 
 class game_setup_dialog(QtGui.QDialog):
@@ -137,20 +144,28 @@ class game_setup_dialog(QtGui.QDialog):
 
         if parent:
             self.parent = parent
-            self.player_count = self.parent.player_count
+            self.player_count = 4 #self.parent.player_count
         else:
             self.player_count = 2
 
-        self.players = self.parent.players
+        try:
+            if self.parent.gameboardGraphicScene.player:
+                self.players = self.parent.gameboardGraphicScene.player
+            else:
+                self.players = self.parent.players
+        except:
+            self.players = self.parent.players
 
+        print(self.players)
         if len(self.players) == self.player_count:
-            self.players = [player_setup_options(i,self) for i in self.players]
+            print("PC:" ,self.player_count)
+            self.players = [player_setup_options(0,i,self) for i in self.players]
         elif len(self.players) > self.player_count:
             while len(self.players) != self.player_count:
                 self.players.pop()
-            self.players = [player_setup_options(i,self) for i in self.players]
+            self.players = [player_setup_options(0,i,self) for i in self.players]
         else:
-            self.players = [player_setup_options(i,self) for i in self.players]
+            self.players = [player_setup_options(0,i,self) for i in self.players]
             while len(self.players) != self.player_count:
                 self.players.append(player_setup_options(player=game_player.game_player(name='Player',human_player = False, main_gameboard=self.parent.gameboardGraphicScene.main_board)))
             
@@ -158,6 +173,7 @@ class game_setup_dialog(QtGui.QDialog):
         self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
         self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge']
         random.shuffle(self.generic_names)
+
         for i in range(1,len(self.players)):
             self.players[i].player.set_name(self.generic_names[i])
             self.players[i].player.set_human(False)
@@ -217,7 +233,8 @@ class game_setup_dialog(QtGui.QDialog):
         self.max_cards_combo.addItem("2: 1 Cards")
         self.max_cards_combo.addItem("3: 3 Cards")
         self.max_cards_combo.addItem("4: 5 Cards")
-        self.max_cards_combo.addItem("5: 7 Cards")
+        self.max_cards_combo.addItem("5: 6 Cards")
+        self.max_cards_combo.addItem("6: 7 Cards")
         self.max_cards_combo.setCurrentIndex(4)
         self.max_cards_widget_layout.addWidget(self.max_cards_label)
         self.max_cards_widget_layout.addWidget(self.max_cards_combo)
@@ -229,7 +246,8 @@ class game_setup_dialog(QtGui.QDialog):
         self.player_count_spin = QtGui.QSpinBox(self)
         self.player_count_spin.setMinimum(2)
         self.player_count_spin.setMaximum(4)
-        self.player_count_spin.setValue(4)
+        self.player_count_spin.setValue(self.parent.player_count or 4)
+        self.spinChangeEvent(self.parent.player_count or 4)
         self.player_count_spin.setWrapping(True)
         self.player_count_widget_layout.addWidget(self.player_count_label)
         self.player_count_widget_layout.addWidget(self.player_count_spin)
@@ -283,6 +301,8 @@ class game_setup_dialog(QtGui.QDialog):
         elif temp == 3:
             return 5
         elif temp == 4:
+            return 6
+        elif temp == 5:
             return 7
         return 0
         
@@ -324,7 +344,7 @@ class player_setup_options(QtGui.QWidget):
         self.human_or_computer_combo.currentIndexChanged.connect(self.human_comp_change)
 
 
-        self.player_name_text_edit = QtGui.QLineEdit(player.get_name() if player else "Player", self)
+        self.player_name_text_edit = QtGui.QLineEdit(self.player.get_name() if self.player else "Player", self)
         self.player_level_label = QtGui.QLabel("AI Level:")
         self.player_level_spin = QtGui.QSpinBox(self)
         self.player_level_spin.setMinimum(1)
@@ -867,7 +887,7 @@ class main_game(QtGui.QGraphicsScene):
             if isinstance(i,playing_card_graphic) or isinstance(i,game_over_screen):
                 self.removeItem(i)
             
-        self.setup_players(self.player_count)
+        self.setup_players(4) #self.player_count)
         self.card_dock.player=self.player[0]
         self.card_dock.update_dock()
         self.layout_board()
