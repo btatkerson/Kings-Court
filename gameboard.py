@@ -45,6 +45,9 @@ class gameboard():
         else:
             self.GAMEMODE = gamemode
 
+    def get_game_mode(self):
+        return self.GAMEMODE
+
 
     def set_grid_boundaries(self):
         self.MIN_GRID_HEIGHT_INDEX = self.MIN_GRID_WIDTH_INDEX = 0

@@ -1,0 +1,12 @@
+
+
+12/04/2016 ------------------------------------------------------
+Ver 0.90.0
+    * Players now retain information between resets
+    * Closing out of a reset window during an active game no longer resets game
+    * Confirm button in game options menu must be pressed the first time game opens
+    * Confirm button in game options menu must be pressed for a game reset to occur. 
+        - This will soon be the "New Game" menu and a quick reset will be on the side by default
+    * 6 cards is the new default hand
+    * Name/Score widgets no longer have errors when starting a game with less than 4 players
+    

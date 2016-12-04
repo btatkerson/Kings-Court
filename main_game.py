@@ -9,9 +9,14 @@ class AppWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(AppWidget, self).__init__(parent)
         self.setWindowTitle('King\'s Court')
-        self.gamemode = 1
+        self.initialSetup = True
+        self.closeEarly = True
+        self.closeOut = False
+        print('C Early Status =', self.closeEarly)
+        self.gamemode = -1
         self.player_count = 4
-        self.max_card = 7
+        self.max_card = -1
+        self.max_card_ind = -1
         self.color_style=['color: rgb(175,0,0);', 'color: rgb( 25, 117, 209);', 'color: rgb(25, 117, 25);', 'color: rgb(153, 153, 0);']
         self.players = []
         self.setGeometry(0,0,825,768)
@@ -23,12 +28,15 @@ class AppWidget(QtGui.QWidget):
         self.gameboardGraphicScene = main_game(self.player_count,self) 
         #self.gameboardGraphicScene.setSceneRect(-100,-8,640,656)
         
-        game_setup_dialog(self).exec_()
-        if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
+        self.game_setup_dialog_window()
+
+        '''
+        if self.setup_player_widgets(self.players):
             for i in self.gameboardGraphicScene.get_players():
                 print(i.get_name())
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
+        '''
 
     
         self.gameboardGraphicView.setScene(self.gameboardGraphicScene)
@@ -43,8 +51,10 @@ class AppWidget(QtGui.QWidget):
         print(self.gameboardGraphicScene.get_coordinate_dictionary_for_board())
 
         # set style change handler
+        '''
         self.horizontalLayout.addWidget(self.sidepanel)
         self.horizontalLayout.addWidget(self.gameboardGraphicView)
+        '''
         self.gameboardGraphicScene.layout_board()
         self.setLayout(self.horizontalLayout)
         self.gameboardGraphicScene.reset_game()
@@ -56,6 +66,15 @@ class AppWidget(QtGui.QWidget):
     def dragLeaveEvent(self):
         pass
 
+    def side_panel_setup(self):
+        if self.setup_player_widgets(self.players):
+            for i in self.gameboardGraphicScene.get_players():
+                print(i.get_name())
+            self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
+            self.sidepanel.setMaximumHeight(600)
+            self.sidepanel.setMaximumWidth(160)
+
+
     def setup_player_widgets(self,players=None):
         if self.player_count > 0:
             for i in range(self.player_count):
@@ -66,13 +85,24 @@ class AppWidget(QtGui.QWidget):
 
     def game_setup_dialog_window(self):
         game_setup_dialog(self).exec_()
+        if self.closeEarly == True:
+            self.destroy()
+            self.close()
+            print("Closing early")
+            exit(0)
 
-        self.horizontalLayout.removeWidget(self.sidepanel)
-        self.horizontalLayout.removeWidget(self.gameboardGraphicView)
-        if self.setup_player_widgets(self.gameboardGraphicScene.get_players()):
+        if self.sidepanel:
+            self.horizontalLayout.removeWidget(self.sidepanel)
+        if self.gameboardGraphicView:
+            self.horizontalLayout.removeWidget(self.gameboardGraphicView)
+
+        if self.setup_player_widgets(self.players):
             for i in self.gameboardGraphicScene.get_players():
                 print(i.get_name())
-            self.sidepanel.update_all()
+            if self.sidepanel:
+                self.sidepanel.update_all()
+            else:
+                self.side_panel_setup()
             '''
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
@@ -123,6 +153,7 @@ class player_side_panel_widget(QtGui.QWidget):
         for i in range(len(self.player_widgets)):
             if i < self.parent.player_count:
                 self.player_widgets[i].show()
+                self.player_widgets[i].set_color_style(self.parent.color_style[i])
 
 
 
@@ -130,11 +161,22 @@ class player_side_panel_widget(QtGui.QWidget):
         if not reset_game_verification(self.parent).exec_():
             return 0
         self.parent.game_setup_dialog_window()
+        closeOut = self.parent.closeOut
+        print("Close out=",closeOut)
+        if closeOut:
+            return 0
+            
         self.parent.gameboardGraphicScene.reset_game()
-        players = self.parent.gameboardGraphicScene.player
+        players = self.parent.players
+        while len(self.player_widgets) > 4:
+            self.player_widgets.pop()
         print("Widgets",self.player_widgets,"Players",players)
         for x,y in enumerate(self.player_widgets):
-            y.set_player(players[x])
+            try:
+                if players[x]:
+                    y.set_player(players[x])
+            except KeyError:
+                break
             
 
 
@@ -155,27 +197,36 @@ class game_setup_dialog(QtGui.QDialog):
                 self.players = self.parent.players
         except:
             self.players = self.parent.players
+        self.setWindowTitle("Game Setup")
 
         print(self.players)
-        if len(self.players) == self.player_count:
+        if len(self.players) == 4:
             print("PC:" ,self.player_count)
             self.players = [player_setup_options(0,i,self) for i in self.players]
-        elif len(self.players) > self.player_count:
-            while len(self.players) != self.player_count:
-                self.players.pop()
-            self.players = [player_setup_options(0,i,self) for i in self.players]
+            '''
+            elif len(self.players) > self.player_count:
+                while len(self.players) != self.player_count:
+                    self.players.pop()
+                self.players = [player_setup_options(0,i,self) for i in self.players]
+            '''
         else:
-            self.players = [player_setup_options(0,i,self) for i in self.players]
-            while len(self.players) != self.player_count:
-                self.players.append(player_setup_options(player=game_player.game_player(name='Player',human_player = False, main_gameboard=self.parent.gameboardGraphicScene.main_board)))
-            
+            leng = len(self.players)
+            if len(self.players) < 4:
+                self.players = [player_setup_options(0,i,self) for i in self.players]
+                while len(self.players) != 4:
+                    self.players.append(player_setup_options(player=game_player.game_player(name='Player',human_player = False, main_gameboard=self.parent.gameboardGraphicScene.main_board)))
+            elif len(self.players)>4:
+                while len(self.players) > 4:
+                    self.players.pop()
+                
 
         self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
-        self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge']
+        self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge', 'Oscar', 'Mr. Blue', 'Vito', 'Conrad', 'Ace', 'Darla', 'Dicky', 'Harvey', 'Cocktrue']
         random.shuffle(self.generic_names)
 
         for i in range(1,len(self.players)):
-            self.players[i].player.set_name(self.generic_names[i])
+            if self.players[i].player.get_name() == 'Player':
+                self.players[i].player.set_name(self.generic_names[i])
             self.players[i].player.set_human(False)
             self.players[i].update_widget_to_player_stats()
 
@@ -220,7 +271,11 @@ class game_setup_dialog(QtGui.QDialog):
         self.game_mode_spinner.addItem("7: Diamond Sharper")
         self.game_mode_spinner.addItem("8: Corners")
         self.game_mode_spinner.addItem("9: Inverse Corners")
-        self.game_mode_spinner.setCurrentIndex(3)
+
+        if 0<= self.parent.gamemode <= 8:
+            self.game_mode_spinner.setCurrentIndex(self.parent.gamemode)
+        else:
+            self.game_mode_spinner.setCurrentIndex(3)
         self.game_mode_widget_layout.addWidget(self.game_mode_label)
         self.game_mode_widget_layout.addWidget(self.game_mode_spinner)
 
@@ -235,7 +290,10 @@ class game_setup_dialog(QtGui.QDialog):
         self.max_cards_combo.addItem("4: 5 Cards")
         self.max_cards_combo.addItem("5: 6 Cards")
         self.max_cards_combo.addItem("6: 7 Cards")
-        self.max_cards_combo.setCurrentIndex(4)
+        if self.parent.max_card_ind >= 0:
+            self.max_cards_combo.setCurrentIndex(self.parent.max_card_ind)
+        else:
+            self.max_cards_combo.setCurrentIndex(4)
         self.max_cards_widget_layout.addWidget(self.max_cards_label)
         self.max_cards_widget_layout.addWidget(self.max_cards_combo)
 
@@ -264,7 +322,7 @@ class game_setup_dialog(QtGui.QDialog):
             self.vbox.addWidget(i)
 
         self.confirm_button = QtGui.QPushButton("Confirm")
-        self.confirm_button.clicked.connect(self.closeEvent)
+        self.confirm_button.clicked.connect(self.confirmEvent)
         self.vbox.addWidget(self.confirm_button)
 
         self.update_players()
@@ -286,11 +344,31 @@ class game_setup_dialog(QtGui.QDialog):
             
         
     def closeEvent(self,e=None):
+        '''
         self.update_players()
         self.parent.gamemode = self.game_mode_spinner.currentIndex()
         print('interp:',self.interpretMaxCardCombo())
         self.parent.max_card = self.interpretMaxCardCombo()
+        self.parent.max_card_ind = self.max_cards_combo.currentIndex()
+        '''
+        if self.parent.initialSetup:
+            print('CLOSED EARLY!')
+            self.parent.closeEarly = True
+        self.parent.closeOut = True
         self.close()
+
+    def confirmEvent(self,e=None):
+        self.parent.initialSetup = False
+        self.parent.closeEarly = False
+        self.parent.closeOut = False
+        self.update_players()
+        self.parent.gamemode = self.game_mode_spinner.currentIndex()
+        print('interp:',self.interpretMaxCardCombo())
+        self.parent.max_card = self.interpretMaxCardCombo()
+        self.parent.max_card_ind = self.max_cards_combo.currentIndex()
+        self.close()
+
+
 
     def interpretMaxCardCombo(self):
         temp = self.max_cards_combo.currentIndex()
@@ -486,6 +564,9 @@ class player_score_widget(QtGui.QWidget):
         self.update_scores()
         self.setMaximumHeight(64)
 
+    def set_color_style(self, colorStyle):
+        if colorStyle:
+            self.player_name_label.setStyleSheet(colorStyle)
 
     def set_player(self,player=None):
         if player:
@@ -713,7 +794,7 @@ class main_game(QtGui.QGraphicsScene):
             if self.player[self.player_turn].is_human():
                 self.card_dock.set_player(self.player[self.player_turn])
                 self.card_dock.update_dock()
-                self.player[self.player_turn].get_computer_move_v2()
+                #self.player[self.player_turn].get_computer_move_v2()
                 '''
                 temp=game_over_screen(self.player,scene=self)
                 temp.setX(0)
