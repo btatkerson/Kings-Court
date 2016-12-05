@@ -9,6 +9,7 @@ class AppWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(AppWidget, self).__init__(parent)
         self.setWindowTitle('King\'s Court')
+        self.mainMenuBar = QtGui.QMenuBar(self)
         self.initialSetup = True
         self.closeEarly = True
         self.closeOut = False
@@ -29,6 +30,7 @@ class AppWidget(QtGui.QWidget):
         #self.gameboardGraphicScene.setSceneRect(-100,-8,640,656)
         
         self.game_setup_dialog_window()
+        self.setup_menu_bar()
 
         '''
         if self.setup_player_widgets(self.players):
@@ -110,6 +112,24 @@ class AppWidget(QtGui.QWidget):
         self.horizontalLayout.addWidget(self.sidepanel)
         self.horizontalLayout.addWidget(self.gameboardGraphicView)
 
+    def setup_menu_bar(self):
+        self.mainMenuBar.setNativeMenuBar(True)
+        self.mainMenuBar.setVisible(False)
+
+        self.new_game_button = QtGui.QAction("New Game", self)
+        self.new_game_button.setShortcut('Ctrl+N')
+        self.new_game_button.setStatusTip('Start A New Game')
+        self.new_game_button.triggered.connect(self.sidepanel.new_game)
+
+        self.exitButton = QtGui.QAction("&Exit",self)
+        self.exitButton.setShortcut('Ctrl+Q')
+        self.exitButton.setStatusTip('Exit Application')
+        self.exitButton.triggered.connect(exit)
+
+        self.fileMenu = self.mainMenuBar.addMenu('&File')
+        self.fileMenu.addAction(self.new_game_button)
+        self.fileMenu.addAction(self.exitButton)
+
 
 
 
@@ -120,7 +140,7 @@ class player_side_panel_widget(QtGui.QWidget):
         self.vlay = QtGui.QVBoxLayout()
         self.player_widgets = player_widgets
         self.reset_button = QtGui.QPushButton("Reset Game")
-        self.reset_button.clicked.connect(self.reset_game)
+        self.reset_button.clicked.connect(self.new_game)
         size_pol_reset_butt = QtGui.QSizePolicy()
         size_pol_reset_butt.setVerticalPolicy(QtGui.QSizePolicy.Minimum)
         size_pol_reset_butt.setHorizontalPolicy(QtGui.QSizePolicy.Minimum)
