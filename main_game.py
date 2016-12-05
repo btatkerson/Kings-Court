@@ -156,10 +156,24 @@ class player_side_panel_widget(QtGui.QWidget):
                 self.player_widgets[i].set_color_style(self.parent.color_style[i])
 
 
-
     def reset_game(self,e):
         if not reset_game_verification(self.parent).exec_():
             return 0
+
+        self.parent.gameboardGraphicScene.reset_game()
+        players = self.parent.players
+        while len(self.player_widgets) > 4:
+            self.player_widgets.pop()
+        print("Widgets",self.player_widgets,"Players",players)
+        for x,y in enumerate(self.player_widgets):
+            try:
+                if players[x]:
+                    y.set_player(players[x])
+            except KeyError:
+                break
+ 
+
+    def new_game(self,e):
         self.parent.game_setup_dialog_window()
         closeOut = self.parent.closeOut
         print("Close out=",closeOut)
