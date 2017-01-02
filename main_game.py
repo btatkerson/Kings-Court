@@ -880,6 +880,7 @@ class main_game(QtGui.QGraphicsScene):
             temp.setZValue(200)
             self.addItem(temp)
             print("Screen Added!")
+            return 0
 
         if self.player[self.player_turn].is_human():
             self.card_dock.set_player(self.player[self.player_turn])
