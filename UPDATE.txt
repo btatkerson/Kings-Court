@@ -1,4 +1,20 @@
+01/01/2017 ------------------------------------------------------
+ver 0.91.1
+    * Added a screen that pops up when multiple humans play
+        - This keeps human players from having their cards revealed
+          to other human players between turns.
+        - Closes out using x button or pressing Space
 
+12/04/2016 ------------------------------------------------------
+ver 0.91.0
+    * Reset button now does a quick reset using previously stored settings
+    * The game widget now shows in back of Game Preferences on startup
+    * The game widget now has a menu bar
+        - Menu bar has three new options
+            + New Game (Ctrl+N) - Allows a new game where new settings can be configured 
+            + Reset Game (Ctrl+R) - Starts a new game with the same settings as previously configured
+            + Exit Game (Ctrl+Q) - Exits the application
+        - Each menu item has a shortcut key mapped to them for quicker actions
 
 12/04/2016 ------------------------------------------------------
 Ver 0.90.0

@@ -9,6 +9,8 @@ class AppWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(AppWidget, self).__init__(parent)
         self.setWindowTitle('King\'s Court')
+        self.showMaximized()
+        self.show()
         self.mainMenuBar = QtGui.QMenuBar(self)
         self.initialSetup = True
         self.closeEarly = True
@@ -47,6 +49,8 @@ class AppWidget(QtGui.QWidget):
         self.gameboardGraphicView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.gameboardGraphicView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
+        
+
                 
         #self.gameboardGraphicScene.addItem(self.testRect)
         #self.gameboardGraphicScene.addItem(self.testRect2)
@@ -58,8 +62,9 @@ class AppWidget(QtGui.QWidget):
         self.horizontalLayout.addWidget(self.gameboardGraphicView)
         '''
         self.gameboardGraphicScene.layout_board()
-        self.setLayout(self.horizontalLayout)
         self.gameboardGraphicScene.reset_game()
+        self.setLayout(self.horizontalLayout)
+        self.setFocus(QtCore.Qt.NoFocusReason)
 
     # handler for changing style
     def handleStyleChanged(self, style):
@@ -112,22 +117,68 @@ class AppWidget(QtGui.QWidget):
         self.horizontalLayout.addWidget(self.sidepanel)
         self.horizontalLayout.addWidget(self.gameboardGraphicView)
 
+
+    def new_game_action(self):
+        self.game_setup_dialog_window()
+        closeOut = self.closeOut
+        print("Close out=",closeOut)
+        if closeOut:
+            return 0
+            
+        self.gameboardGraphicScene.reset_game()
+        players = self.players
+        while len(self.sidepanel.player_widgets) > 4:
+            self.sidepanel.player_widgets.pop()
+        print("Widgets",self.sidepanel.player_widgets,"Players",players)
+        for x,y in enumerate(self.sidepanel.player_widgets):
+            try:
+                if players[x]:
+                    y.set_player(players[x])
+            except KeyError:
+                break
+
+    def reset_game_action(self):
+        if not reset_game_verification(self).exec_():
+            return 0
+
+        self.gameboardGraphicScene.reset_game()
+        players = self.players
+        while len(self.sidepanel.player_widgets) > 4:
+            self.sidepanel.player_widgets.pop()
+        print("Widgets",self.sidepanel.player_widgets,"Players",players)
+        for x,y in enumerate(self.sidepanel.player_widgets):
+            try:
+                if players[x]:
+                    y.set_player(players[x])
+            except KeyError:
+                break
+ 
+   
     def setup_menu_bar(self):
         self.mainMenuBar.setNativeMenuBar(True)
         self.mainMenuBar.setVisible(False)
 
-        self.new_game_button = QtGui.QAction("New Game", self)
-        self.new_game_button.setShortcut('Ctrl+N')
+        self.new_game_button = QtGui.QAction("&New Game", self)
+        self.new_game_button.setShortcut("Ctrl+N")
         self.new_game_button.setStatusTip('Start A New Game')
-        self.new_game_button.triggered.connect(self.sidepanel.new_game)
+        self.new_game_button.triggered.connect(self.new_game_action)
+        self.connect(QtGui.QShortcut("Ctrl+N", self), QtCore.SIGNAL('activated()'),self.new_game_action)
+
+        self.resetButton = QtGui.QAction("&Reset",self)
+        self.resetButton.setShortcut("Ctrl+R")
+        self.resetButton.setStatusTip('Exit Application')
+        self.resetButton.triggered.connect(self.reset_game_action)
+        self.connect(QtGui.QShortcut("Ctrl+R", self), QtCore.SIGNAL('activated()'),self.reset_game_action)
 
         self.exitButton = QtGui.QAction("&Exit",self)
-        self.exitButton.setShortcut('Ctrl+Q')
+        self.exitButton.setShortcut("Ctrl+Q")
         self.exitButton.setStatusTip('Exit Application')
         self.exitButton.triggered.connect(exit)
+        self.connect(QtGui.QShortcut("Ctrl+Q", self), QtCore.SIGNAL('activated()'),exit)
 
         self.fileMenu = self.mainMenuBar.addMenu('&File')
         self.fileMenu.addAction(self.new_game_button)
+        self.fileMenu.addAction(self.resetButton)
         self.fileMenu.addAction(self.exitButton)
 
 
@@ -140,7 +191,7 @@ class player_side_panel_widget(QtGui.QWidget):
         self.vlay = QtGui.QVBoxLayout()
         self.player_widgets = player_widgets
         self.reset_button = QtGui.QPushButton("Reset Game")
-        self.reset_button.clicked.connect(self.new_game)
+        self.reset_button.clicked.connect(self.reset_game)
         size_pol_reset_butt = QtGui.QSizePolicy()
         size_pol_reset_butt.setVerticalPolicy(QtGui.QSizePolicy.Minimum)
         size_pol_reset_butt.setHorizontalPolicy(QtGui.QSizePolicy.Minimum)
@@ -194,6 +245,7 @@ class player_side_panel_widget(QtGui.QWidget):
  
 
     def new_game(self,e):
+        print("E:",e)
         self.parent.game_setup_dialog_window()
         closeOut = self.parent.closeOut
         print("Close out=",closeOut)
@@ -212,6 +264,31 @@ class player_side_panel_widget(QtGui.QWidget):
             except KeyError:
                 break
             
+            '''
+     def reset_game(self,e):
+        if not reset_game_verification(self.parent).exec_():
+            return 0
+        self.parent.game_setup_dialog_window()
+        closeOut = self.parent.closeOut
+        print("Close out=",closeOut)
+        if closeOut:
+            return 0
+            
+        self.parent.gameboardGraphicScene.reset_game()
+        players = self.parent.players
+        while len(self.player_widgets) > 4:
+            self.player_widgets.pop()
+        print("Widgets",self.player_widgets,"Players",players)
+        for x,y in enumerate(self.player_widgets):
+            try:
+                if players[x]:
+                    y.set_player(players[x])
+            except KeyError:
+                break
+            
+
+            '''
+           
 
 
 class game_setup_dialog(QtGui.QDialog):
@@ -291,6 +368,7 @@ class game_setup_dialog(QtGui.QDialog):
 
         '''
 
+        self.parent.closeOut = True
         self.game_mode_widget_layout = QtGui.QHBoxLayout(self)
         self.game_mode_widget=QtGui.QWidget(self)
         self.game_mode_widget.setLayout(self.game_mode_widget_layout)
@@ -388,10 +466,10 @@ class game_setup_dialog(QtGui.QDialog):
         if self.parent.initialSetup:
             print('CLOSED EARLY!')
             self.parent.closeEarly = True
-        self.parent.closeOut = True
         self.close()
 
     def confirmEvent(self,e=None):
+        print('Confirmed!')
         self.parent.initialSetup = False
         self.parent.closeEarly = False
         self.parent.closeOut = False
@@ -728,6 +806,14 @@ class player_card_dock(QtGui.QGraphicsItemGroup):
             count += 1
             self.addToGroup(i)
 
+    def hide_cards(self):
+        for i in self.player_deck:
+            i.hide()
+
+    def show_cards(self):
+        for i in self.player_deck:
+            i.show()
+
     def set_player(self,player=None):
         if player:
             self.player = player
@@ -767,10 +853,20 @@ class main_game(QtGui.QGraphicsScene):
 
         self.addItem(self.background)
         self.addItem(self.card_dock)
+    
 
     def dragLeaveEvent(self):
         pass
 
+    def get_human_players(self):
+        c = []
+        for i in self.player:
+            if i.is_human():
+                c.append(i)
+        return c
+
+    def get_human_player_count(self):
+        return len(self.get_human_players())
 
     def get_players(self):
         return self.player
@@ -788,6 +884,18 @@ class main_game(QtGui.QGraphicsScene):
         if self.player[self.player_turn].is_human():
             self.card_dock.set_player(self.player[self.player_turn])
             self.card_dock.update_dock()
+
+            if self.get_human_player_count()>1:
+                self.card_dock.hide_cards()
+                temp=human_player_turn_dialog(self.player,self.player_turn,scene=self)
+                temp.setX(0)
+                temp.setY(0)
+                temp.setZValue(200)
+                self.addItem(temp)
+                print("Screen Added!")
+
+
+
             return 0
         else:
             while self.player[self.player_turn].is_computer():
@@ -826,8 +934,21 @@ class main_game(QtGui.QGraphicsScene):
                 print(i.get_name(),"hand:",sorter.get_deck(1))
 
             if self.player[self.player_turn].is_human():
+
                 self.card_dock.set_player(self.player[self.player_turn])
                 self.card_dock.update_dock()
+
+                
+                if self.get_human_player_count()>1 and not self.is_game_over():
+                    self.card_dock.hide_cards()
+                    temp=human_player_turn_dialog(self.player,self.player_turn,scene=self)
+                    temp.setX(0)
+                    temp.setY(0)
+                    temp.setZValue(200)
+                    self.addItem(temp)
+                    print("Screen Added!")
+
+                   
                 #self.player[self.player_turn].get_computer_move_v2()
                 '''
                 temp=game_over_screen(self.player,scene=self)
@@ -988,6 +1109,19 @@ class main_game(QtGui.QGraphicsScene):
             if isinstance(i,game_over_screen):
                 self.removeItem(i)
 
+    def close_human_player_screen(self):
+        for i in self.items():
+            if isinstance(i,human_player_turn_dialog):
+                self.removeItem(i)
+        self.card_dock.show_cards()
+
+    def keyPressEvent(self, e=None):
+        if e.key() == QtCore.Qt.Key_Space:
+            print("Space pressed!")
+            if isinstance(self.focusItem(),human_player_turn_dialog):
+                self.close_human_player_screen()
+                self.clearFocus()
+
 
     def reset_game(self):
         print("------------------------------------------\n",self.cards_on_board_dictionary.items())
@@ -1007,6 +1141,61 @@ class main_game(QtGui.QGraphicsScene):
         self.card_dock.update_dock()
         self.layout_board()
 
+class human_player_turn_dialog(QtGui.QGraphicsItemGroup):
+    def __init__(self, players=None, current_player=None,parent=None,scene=None):
+        self.parent = parent
+        self.scene = scene
+        if players:
+            self.players = players
+            print(self.players,"These are the players!")
+            self.curplay = self.players[current_player]
+            self.curplay_pos = 0
+            for i in range(len(self.players)):
+                if self.players[i] == self.curplay:
+                    self.curplay_pos = i
+                    break
+            self.curplay_name = self.curplay.get_name()
+                    
+            print(self.curplay_name,"is up next!")
+        else:
+            self.players = []
+
+        QtGui.QGraphicsItemGroup.__init__(self,parent,scene)
+        self.setHandlesChildEvents(False)
+
+        self.graphicRectangle = QtGui.QGraphicsRectItem(0,0,512,512,self)
+        self.graphicRectangle.setBrush(QtGui.QBrush(QtGui.QColor(255,255,255,196)))
+        self.graphicRectangle.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+        self.curplayFont = QtGui.QFont()
+        self.curplayFont.setPointSize(72)
+        self.curplayFont.setBold(True)
+        self.addToGroup(self.graphicRectangle)
+
+        self.curplayText = QtGui.QGraphicsTextItem(self.curplay_name, parent=self,scene=scene)
+        self.curplayText.setTextWidth(512)
+        self.curplayText.setFont(self.curplayFont)
+        #self.curplayText.setHtml("<center><font size = 108><b>"+self.curplay_name+" Wins!</b></font></center>")
+        self.curplayText.setHtml("<center>"+self.curplay_name+"<br> is up next.</center>")
+
+        self.color_style=[QtGui.QColor(175, 0, 0), QtGui.QColor(25, 117, 209), QtGui.QColor(25, 117, 25), QtGui.QColor(153, 153, 0)]
+        self.curplayText.setDefaultTextColor(self.color_style[self.curplay_pos])
+
+        self.curplayText.setY(220-144)
+        self.addToGroup(self.curplayText)
+
+        self.close_graphic_button = game_over_close_button(scene=self.scene)
+        self.close_graphic_button.setX(472)
+        self.close_graphic_button.setY(10)
+
+        
+        self.addToGroup(self.close_graphic_button)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsFocusable,True)
+        scene.setFocusItem(self)
+        print("Focus on me:", scene.focusItem())
+
+        #self.graphicRectangle.setVisible(True)
+
+       
 
 class game_over_screen(QtGui.QGraphicsItemGroup):
     def __init__(self, players=None, parent=None, scene=None):
@@ -1084,6 +1273,7 @@ class game_over_close_button(QtGui.QGraphicsItemGroup):
         print("Released!")
         self.topText.setDefaultTextColor(self.mouse_state_colors[1])
         self.scene.close_game_over_screens()
+        self.scene.close_human_player_screen()
 
     def mousePressEvent(self, event): 
         print("Pressed!")
