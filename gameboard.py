@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import stats
 from carddeck import carddeck, card, random
 from time import time
@@ -21,7 +22,7 @@ class gameboard():
         self.GAMEMODE = gamemode
         
         self.game_deck = carddeck(2,0,self.EXTRA_SUIT)
-        self.game_deck.deal_card(self.game_deck.find_card([6,7,8,9,10,11]))
+        self.game_deck.deal_card(self.game_deck.find_card_by_value([6,7,8,9,10,11]))
         self.game_kings_deck = carddeck(0,0,self.EXTRA_SUIT)
         self.game_kings_deck.take_card_from_different_deck(self.game_deck,'K',all_instances=1)
 
@@ -119,7 +120,8 @@ class gameboard():
             for i in cards_in_col:
                 if card_suit == self.trump_suit:
                     if i.get_suit() == self.trump_suit:
-                        match_trump_suit += i.get_value()
+                        print("\n\n\n\nCOLUMN TRUMP SUIT!",i.get_info(),i.get_value(),i.get_suit(),self.trump_suit)
+                        match_trump_suit += i.get_value()+1 if i.get_value()+1 != 13 else 10
                 else:
                     if i.get_suit() == self.trump_suit:
                         match_trump_suit += 1
@@ -130,7 +132,8 @@ class gameboard():
             for i in cards_in_row:
                 if card_suit == self.trump_suit:
                     if i.get_suit() == self.trump_suit:
-                        match_trump_suit += i.get_value()
+                        print("\n\n\n\nROW TRUMP SUIT!",i.get_info(),i.get_value(),i.get_suit(),self.trump_suit)
+                        match_trump_suit += i.get_value()+1 if i.get_value()+1 != 13 else 10
                 else:
                     if i.get_suit() == self.trump_suit:
                         match_trump_suit += 1

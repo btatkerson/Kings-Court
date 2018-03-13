@@ -1,4 +1,8 @@
 03/13/2018 ------------------------------------------------------
+ver 0.93.1
+    * Fixed scoring where the center 0 ("king") returned a value of 13
+      instead of 10 for trump suit cards in the same column/row
+03/13/2018 ------------------------------------------------------
 ver 0.93.0
     * Added "Help" menu to menu bar
         - Rules (Ctrl+H) - A window with game rules pops up
