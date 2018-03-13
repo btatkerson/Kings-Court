@@ -23,16 +23,19 @@ class AppWidget(QtGui.QWidget):
         self.color_style=['color: rgb(175,0,0);', 'color: rgb( 25, 117, 209);', 'color: rgb(25, 117, 25);', 'color: rgb(153, 153, 0);']
         self.players = []
         self.setGeometry(0,0,825,768)
-        self.horizontalLayout = QtGui.QHBoxLayout()
+        self.setMinimumHeight(728)
+        #self.setMinimumWidth(752)
+        self.setMinimumWidth(968)
+        self.horizontalLayout = QtGui.QHBoxLayout(self)
         self.player_side_widget = []
         self.sidepanel=None
 
-        self.gameboardGraphicView = QtGui.QGraphicsView()
+        self.gameboardGraphicView = QtGui.QGraphicsView(self)
+        self.gameboardGraphicView.setMinimumWidth(580)
         self.gameboardGraphicScene = main_game(self.player_count,self) 
         #self.gameboardGraphicScene.setSceneRect(-100,-8,640,656)
         
         self.game_setup_dialog_window()
-        self.setup_menu_bar()
 
         '''
         if self.setup_player_widgets(self.players):
@@ -49,22 +52,38 @@ class AppWidget(QtGui.QWidget):
         self.gameboardGraphicView.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.gameboardGraphicView.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
-        
-
                 
-        #self.gameboardGraphicScene.addItem(self.testRect)
-        #self.gameboardGraphicScene.addItem(self.testRect2)
         print(self.gameboardGraphicScene.get_coordinate_dictionary_for_board())
 
         # set style change handler
-        '''
+        self.score_board = score_table(self)
+        #self.score_board.hide()
+
+
+        #self.split = QtGui.QSplitter(self)
         self.horizontalLayout.addWidget(self.sidepanel)
+        self.horizontalLayout.addWidget(self.score_board)
         self.horizontalLayout.addWidget(self.gameboardGraphicView)
         '''
+        self.split.addWidget(self.sidepanel)
+        self.split.addWidget(self.gameboardGraphicView)
+        self.split.addWidget(self.score_board)
+        '''
+
+
+
         self.gameboardGraphicScene.layout_board()
         self.gameboardGraphicScene.reset_game()
         self.setLayout(self.horizontalLayout)
         self.setFocus(QtCore.Qt.NoFocusReason)
+        #self.resizeEvent()
+        self.setup_menu_bar()
+
+    def resizeEvent(self,evt=None):
+        #self.gameboardGraphicView.setMinimumWidth(self.width()-148)
+        #self.gameboardGraphicScene.setSceneRect(0,0,self.gameboardGraphicView.width()-64,640)
+        self.gameboardGraphicScene.setSceneRect(0,0,508,640)
+        #print("\n\n\n\n\nWINDOW RESIZED!\n\n\n\n\n")
 
     # handler for changing style
     def handleStyleChanged(self, style):
@@ -79,7 +98,7 @@ class AppWidget(QtGui.QWidget):
                 print(i.get_name())
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
-            self.sidepanel.setMaximumWidth(160)
+            self.sidepanel.setFixedWidth(144)
 
 
     def setup_player_widgets(self,players=None):
@@ -98,10 +117,12 @@ class AppWidget(QtGui.QWidget):
             print("Closing early")
             exit(0)
 
+        '''
         if self.sidepanel:
             self.horizontalLayout.removeWidget(self.sidepanel)
         if self.gameboardGraphicView:
             self.horizontalLayout.removeWidget(self.gameboardGraphicView)
+        '''
 
         if self.setup_player_widgets(self.players):
             for i in self.gameboardGraphicScene.get_players():
@@ -114,12 +135,11 @@ class AppWidget(QtGui.QWidget):
             self.sidepanel=player_side_panel_widget(self.player_side_widget,parent=self)
             self.sidepanel.setMaximumHeight(600)
             '''
-        self.horizontalLayout.addWidget(self.sidepanel)
-        self.horizontalLayout.addWidget(self.gameboardGraphicView)
 
 
     def new_game_action(self):
         self.game_setup_dialog_window()
+
         closeOut = self.closeOut
         print("Close out=",closeOut)
         if closeOut:
@@ -129,13 +149,16 @@ class AppWidget(QtGui.QWidget):
         players = self.players
         while len(self.sidepanel.player_widgets) > 4:
             self.sidepanel.player_widgets.pop()
+        self.sidepanel.update_all()
+        
         print("Widgets",self.sidepanel.player_widgets,"Players",players)
         for x,y in enumerate(self.sidepanel.player_widgets):
             try:
                 if players[x]:
                     y.set_player(players[x])
-            except KeyError:
+            except:
                 break
+        self.score_board.reset_table()
 
     def reset_game_action(self):
         if not reset_game_verification(self).exec_():
@@ -145,14 +168,27 @@ class AppWidget(QtGui.QWidget):
         players = self.players
         while len(self.sidepanel.player_widgets) > 4:
             self.sidepanel.player_widgets.pop()
+        self.sidepanel.update_all()
         print("Widgets",self.sidepanel.player_widgets,"Players",players)
         for x,y in enumerate(self.sidepanel.player_widgets):
             try:
                 if players[x]:
                     y.set_player(players[x])
-            except KeyError:
+            except:
                 break
- 
+        self.score_board.reset_table()
+
+    def about_action(self):
+        print("About Action")
+        a=about_game_window(self)
+        a.show()
+
+    def rule_action(self):
+        print("About Action")
+        a=rules_window(self)
+        a.show()
+
+        
    
     def setup_menu_bar(self):
         self.mainMenuBar.setNativeMenuBar(True)
@@ -171,17 +207,148 @@ class AppWidget(QtGui.QWidget):
         self.connect(QtGui.QShortcut("Ctrl+R", self), QtCore.SIGNAL('activated()'),self.reset_game_action)
 
         self.exitButton = QtGui.QAction("&Exit",self)
-        self.exitButton.setShortcut("Ctrl+Q")
+        #self.exitButton.setShortcut("Ctrl+Q")
         self.exitButton.setStatusTip('Exit Application')
         self.exitButton.triggered.connect(exit)
         self.connect(QtGui.QShortcut("Ctrl+Q", self), QtCore.SIGNAL('activated()'),exit)
+
+        self.toggleMoveButton = QtGui.QAction("&Move History",self)
+        self.toggleMoveButton.setShortcut("Ctrl+M")
+        self.toggleMoveButton.setStatusTip('Toggle Move History Window')
+        self.toggleMoveButton.triggered.connect(self.score_board.toggle_visibility)
+        self.connect(QtGui.QShortcut("Ctrl+M", self), QtCore.SIGNAL('activated()'),self.score_board.toggle_visibility)
+
+
+        self.ruleButton = QtGui.QAction("&Rules",self)
+        self.ruleButton.setShortcut("Ctrl+H")
+        self.ruleButton.setStatusTip('Rules for the Game')
+        self.ruleButton.triggered.connect(self.rule_action)
+        self.connect(QtGui.QShortcut("Ctrl+H", self), QtCore.SIGNAL('activated()'),self.rule_action)
+
+        self.aboutButton = QtGui.QAction("&About",self)
+        #self.aboutButton.setShortcut("Ctrl+A")
+        self.aboutButton.setStatusTip('About Application')
+        self.aboutButton.triggered.connect(self.about_action)
+        self.connect(QtGui.QShortcut("Ctrl+A", self), QtCore.SIGNAL('activated()'),self.about_action)
+
+
 
         self.fileMenu = self.mainMenuBar.addMenu('&File')
         self.fileMenu.addAction(self.new_game_button)
         self.fileMenu.addAction(self.resetButton)
         self.fileMenu.addAction(self.exitButton)
 
+        self.viewMenu = self.mainMenuBar.addMenu('&View')
+        self.viewMenu.addAction(self.toggleMoveButton)
 
+        self.aboutMenu = self.mainMenuBar.addMenu('&Help')
+        self.aboutMenu.addAction(self.ruleButton)
+        self.aboutMenu.addAction(self.aboutButton)
+
+
+class score_table(QtGui.QTableWidget):
+    def __init__(self,parent=None):
+        QtGui.QTableWidget.__init__(self,parent=parent)
+        self.parent=parent
+        self.scores=[]
+        self.setColumnCount(4)
+        self.setRowCount(0)
+        self.setMaximumWidth(432)
+        self.setMinimumWidth(210)
+        self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+        self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.setHorizontalHeaderItem(0,QtGui.QTableWidgetItem('Player Name'))
+        self.setHorizontalHeaderItem(1,QtGui.QTableWidgetItem('Card'))
+        self.setHorizontalHeaderItem(2,QtGui.QTableWidgetItem('Spot Played'))
+        self.setHorizontalHeaderItem(3,QtGui.QTableWidgetItem('Score Earned'))
+
+    def reset_table(self):
+        print("\n\n\n\n\nRESET TABLE!\n\n\n\n\n")
+        self.scores = []
+        self.setRowCount(0)
+        
+
+    def add_score_to_list(self, scoreItem=None):
+        color_style=[QtGui.QColor(175,0,0), QtGui.QColor( 25, 117, 209), QtGui.QColor(25, 117, 25), QtGui.QColor(153, 153, 0)]
+
+        self.setRowCount(self.rowCount()+1)
+        self.scores.append(scoreItem)
+
+        font=QtGui.QFont('Ubuntu')
+        font.setBold(True)
+        
+        tabWidItem=QtGui.QTableWidgetItem(scoreItem.getName())
+        tabWidItem.setTextAlignment(QtCore.Qt.AlignVCenter | QtCore.Qt.AlignRight)
+        tabWidItem.setTextColor(color_style[scoreItem.getTurn()])
+        tabWidItem.setFont(font)
+        self.setItem(self.rowCount()-1,0,tabWidItem)
+        
+        tabWidItem=QtGui.QTableWidgetItem(scoreItem.getCard())
+        tabWidItem.setTextAlignment(QtCore.Qt.AlignCenter)
+        tabWidItem.setTextColor(color_style[int(scoreItem.getCardColor())])
+        tabWidItem.setFont(font)
+        self.setItem(self.rowCount()-1,1,tabWidItem)
+
+        tabWidItem=QtGui.QTableWidgetItem(scoreItem.getSpot())
+        tabWidItem.setTextAlignment(QtCore.Qt.AlignCenter)
+        tabWidItem.setFont(font)
+        self.setItem(self.rowCount()-1,2,tabWidItem)
+        
+        tabWidItem=QtGui.QTableWidgetItem(scoreItem.getScore())
+        tabWidItem.setTextAlignment(QtCore.Qt.AlignCenter)
+        tabWidItem.setFont(font)
+        self.setItem(self.rowCount()-1,3,tabWidItem)
+        self.scrollToBottom()
+
+
+    def toggle_visibility(self,evt=None):
+        if self.isVisible():
+            self.hide()
+            self.parent.setMinimumWidth(752)
+            return False
+        self.show()
+        self.parent.setMinimumWidth(968)
+        return True
+
+
+
+class tableScore():
+    def __init__(self,player=None,turn=None,card=None,spot=None,score=None,board=None,parent = None):
+        self.parent = parent
+
+        self.player = player
+        self.turn = turn
+        self.card = card
+        self.spot = spot
+        self.score = score
+        self.board = board
+
+    def printAll(self):
+        print("Table Score: ",self.getTurn(), self.getName(), self.getCard(), self.getCardColor(), self.getSpot(), self.getScore(), self.getBoard(),sep='\n',end='\n')
+        return 0
+
+    def getName(self):
+        return self.player.get_name()
+
+    def getTurn(self):
+        return self.turn
+
+    def getCard(self):
+        return str(self.card.get_info(1)[0]+self.card.get_info(1)[1])
+
+    def getCardColor(self):
+        return str(self.card.get_info(0)[1])
+
+    def getSpot(self):
+        return str((self.spot[0]+1,self.spot[1]+1))
+
+    def getScore(self):
+        return str(self.score)
+
+    def getBoard(self):
+        return self.board
+
+        
 
 
 class player_side_panel_widget(QtGui.QWidget):
@@ -199,11 +366,13 @@ class player_side_panel_widget(QtGui.QWidget):
         self.score_widgets = QtGui.QWidget(self)
         self.score_widget_layout = QtGui.QVBoxLayout(self)
         self.score_widgets.setLayout(self.score_widget_layout)
+
         if player_widgets:
             for i in player_widgets:
                 self.score_widget_layout.addWidget(i)
 
         self.score_widgets.setMinimumHeight(self.parent.height()/1.5)
+        self.score_widgets.setFixedWidth(128)
         self.vlay.addWidget(self.score_widgets)
         self.vlay.addWidget(self.reset_button)
         self.vlay.setAlignment(QtCore.Qt.AlignVCenter)
@@ -211,7 +380,7 @@ class player_side_panel_widget(QtGui.QWidget):
         size_policy.setVerticalPolicy(QtGui.QSizePolicy.Minimum)
         self.score_widgets.setSizePolicy(size_policy)
         self.setLayout(self.vlay)
-        self.setMaximumWidth(160)
+        self.setFixedWidth(160)
 
 
         print('Width self/reset/scores', self.width(), self.reset_button.width(), self.score_widgets.width())
@@ -242,6 +411,7 @@ class player_side_panel_widget(QtGui.QWidget):
                     y.set_player(players[x])
             except KeyError:
                 break
+        self.parent.score_board.reset_table()
  
 
     def new_game(self,e):
@@ -263,8 +433,10 @@ class player_side_panel_widget(QtGui.QWidget):
                     y.set_player(players[x])
             except KeyError:
                 break
+
+        self.parent.score_board.reset_table()
             
-            '''
+    '''
      def reset_game(self,e):
         if not reset_game_verification(self.parent).exec_():
             return 0
@@ -287,7 +459,7 @@ class player_side_panel_widget(QtGui.QWidget):
                 break
             
 
-            '''
+    '''
            
 
 
@@ -331,8 +503,8 @@ class game_setup_dialog(QtGui.QDialog):
                     self.players.pop()
                 
 
-        self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
-        self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge', 'Oscar', 'Mr. Blue', 'Vito', 'Conrad', 'Ace', 'Darla', 'Dicky', 'Harvey', 'Cocktrue']
+        #self.generic_names = ['Harland', 'Cool Pat', 'Nancy', 'Dr. Spaceman', 'Oscar', 'Rex', 'La Porsha']
+        self.generic_names = ['Lynette', 'Bree', 'Susan', 'Bear', 'Dodd', 'Rye','Hanzee','Lou','Homer','Bart','Lisa','Marge', 'Oscar', 'Mr. Blue', 'Vito', 'Ace', 'Darla', 'Dicky', 'Harvey', 'Marcellus', 'Vincent','Jules','Mia','Jimmy','Decker']
         random.shuffle(self.generic_names)
 
         for i in range(1,len(self.players)):
@@ -509,10 +681,62 @@ class game_setup_dialog(QtGui.QDialog):
         self.parent.players=player_list
 
 
+class about_game_window(QtGui.QDialog):
+    def __init__(self, parent=None):
+        print("About Game Window Init")
+        QtGui.QDialog.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+        self.setWindowFlags(QtCore.Qt.Window)
+        self.setFixedSize(400,320)
+        self.setWindowTitle("About Game")
+        self.v_lay = QtGui.QVBoxLayout()
+        self.setLayout(self.v_lay)
+        self.closeButton = QtGui.QPushButton("Close")
+        self.texWindow=QtGui.QTextBrowser()
+        self.texWindow.setReadOnly(True)
+        f = open('./about/about.html','r')
+        html = f.read()
+        f.close()
+        self.texWindow.setHtml(html)
+        self.texWindow.setOpenExternalLinks(True)
+        self.texWindow.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.v_lay.addWidget(self.texWindow)
+        self.v_lay.addWidget(self.closeButton)
+        self.closeButton.clicked.connect(self.destroy_window)
+        self.show()
 
+    def destroy_window(self):
+        self.destroy()
 
+class rules_window(QtGui.QDialog):
+    def __init__(self, parent=None):
+        print("About Game Window Init")
+        QtGui.QDialog.__init__(self, parent)
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint)
+        self.setWindowFlags(QtCore.Qt.Window)
+        #self.setFixedSize(400,320)
+        self.setMinimumSize(800,700)
+        self.setWindowTitle("Game Rules")
+        self.v_lay = QtGui.QVBoxLayout()
+        self.setLayout(self.v_lay)
+        self.closeButton = QtGui.QPushButton("Close")
+        self.texWindow=QtGui.QTextBrowser()
+        self.texWindow.setReadOnly(True)
+        f = open('./rules/rules.html','r')
+        html = f.read()
+        f.close()
+        self.texWindow.setHtml(html)
+        self.texWindow.setOpenExternalLinks(True)
+        self.v_lay.addWidget(self.texWindow)
+        self.v_lay.addWidget(self.closeButton)
+        self.closeButton.clicked.connect(self.destroy_window)
+        self.show()
 
-    
+    def destroy_window(self):
+        self.destroy()
+
+        
+
 
 class player_setup_options(QtGui.QWidget):
     def __init__(self, is_human=None, player=None, parent=None):
@@ -539,7 +763,7 @@ class player_setup_options(QtGui.QWidget):
         self.player_level_spin = QtGui.QSpinBox(self)
         self.player_level_spin.setMinimum(1)
         self.player_level_spin.setMaximum(6)
-        self.player_level_spin.setWrapping(True)
+        self.player_level_spin.setWrapping(False)
         self.player_level_spin.setValue(player.get_computer_level() if player else 2)
 
         if self.player.is_human():
@@ -905,7 +1129,12 @@ class main_game(QtGui.QGraphicsScene):
                 if not comp_move: 
                     self.player_turn=(self.player_turn+1) % self.player_count
                 else:
-                    self.player[self.player_turn].set_score(self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1],mercy=self.player[self.player_turn].has_mercy()))
+                    anchor_score=self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1],mercy=self.player[self.player_turn].has_mercy())
+                    self.player[self.player_turn].set_score(anchor_score)
+
+                    self.parent.score_board.add_score_to_list(tableScore(self.player[self.player_turn],self.player_turn,comp_move[0],comp_move[1],anchor_score))
+                    
+
                     self.main_board.set_card_on_board(comp_move[0],comp_move[1])
                     self.player[self.player_turn].card_hand.deal_card([comp_move[0]])
                     self.player[self.player_turn].drawl_card_from_deck()
@@ -1068,7 +1297,14 @@ class main_game(QtGui.QGraphicsScene):
             print('coords:',self.main_board.get_coordinates_by_index(smallest[1]))
             print("Score of drop",self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])))
             if player:
-                player.set_score(self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1]),mercy=player.has_mercy(),verbo=1))
+                #anchor_score=self.main_board.get_score_to_anchor_card(comp_move[0],comp_move[1],mercy=self.player[self.player_turn].has_mercy())
+                anchor_score=self.main_board.get_score_to_anchor_card(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1]),mercy=player.has_mercy(),verbo=1)
+                coords = self.main_board.get_coordinates_by_index(smallest[1])
+                #self.player[self.player_turn].set_score(anchor_score)
+                self.parent.score_board.add_score_to_list(tableScore(self.player[self.player_turn],self.player_turn,card.get_card_class(),coords,anchor_score))
+                
+                player.set_score(anchor_score)
+
                 print("Player Score: ",player.get_score())
             print(self.main_board.set_card_on_board(card.get_card_class(),self.main_board.get_coordinates_by_index(smallest[1])))
             card.set_click_off()

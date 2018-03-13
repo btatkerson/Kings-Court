@@ -117,15 +117,23 @@ class gameboard():
             match_corner_suit = 0
 
             for i in cards_in_col:
-                if i.get_suit() == self.trump_suit:
-                    match_trump_suit += 1
+                if card_suit == self.trump_suit:
+                    if i.get_suit() == self.trump_suit:
+                        match_trump_suit += i.get_value()
+                else:
+                    if i.get_suit() == self.trump_suit:
+                        match_trump_suit += 1
 
                 if i.get_value() == card_value:
                     match_card_val += 1
 
             for i in cards_in_row:
-                if i.get_suit() == self.trump_suit:
-                    match_trump_suit += 1
+                if card_suit == self.trump_suit:
+                    if i.get_suit() == self.trump_suit:
+                        match_trump_suit += i.get_value()
+                else:
+                    if i.get_suit() == self.trump_suit:
+                        match_trump_suit += 1
 
                 if i.get_value() == card_value:
                     match_card_val += 1
