@@ -1,3 +1,17 @@
+04/09/2018 ------------------------------------------------------
+ver 1.0 - FIRST RELEASE
+    * Fixed bug where two human players wouldn't be able to play if player 1 didn't go first
+    * Updated ruleset to be clearer with plenty of clear visuals. Will tweak as necessary.
+    * Added names.csv with list of random names for players
+    * Added GNU General Public License v3 to the files.
+
+03/18/2018 ------------------------------------------------------
+ver 0.93.2
+    * Player turn rotation is now random so human player is not always first.
+    * Fixed glitch where a new game with AI level changes caused score table
+      to reset after initial turn
+    * Fixed bug with reset button where score table was clearing after the first turn
+      of a new game.
 03/13/2018 ------------------------------------------------------
 ver 0.93.1
     * Fixed scoring where the center 0 ("king") returned a value of 13

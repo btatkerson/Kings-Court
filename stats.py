@@ -677,94 +677,159 @@ Public License instead of this License.  But first, please read
 ########################################################################
 '''
 
-import os
-from gameboard import gameboard
-from game_player import game_player
-#from gridgame import gridgame
+PI = 3.14159265358979323846264338327950288
+e = 2.71828182845904523536028747135266249
 
-gamemode = int(input("0: X\n1: Snowflake\n2: Circle\nPick initial board setup >"))
-player_count = int(input("How many computer players (1-3)? >"))
-player_count = player_count % 3
-if player_count == 0:
-    player_count = 3
+def probability_atleast(p_success=None, trials = 1, atleast=1, p_fail=None):
+    if atleast > trials:
+        return 0
+    if p_fail != None:
+        p_success = 1-p_fail
+    if p_success != None:
+        if 0 <= p_success <= 1:
+            stacked_p = 0
+            for i in range(atleast):
+                stacked_p += (1-p_success)**(trials-i)*(p_success)**i
+            return 1-stacked_p
 
-main_game = gameboard(0,gamemode)
-player = [game_player('Player ' + str(i),0,main_game) for i in range(1,player_count+2)]
-
-player[0].human_player=1
-
-main_game.game_deck.shuffle_deck()
-
-main_game.print_game_board_color()
-
-count = 0
-
-while not main_game.game_deck.is_deck_empty():
-    player[count % len(player)].get_hand().take_card(main_game.game_deck.deal_card())
-    count+=1
-
-for i in player:
-    
-    i.card_hand.sort_deck_by_card_suit()
-    i.card_hand.sort_deck_by_card_value()
-    color_deck = [str(j.get_info_color()) for j in i.card_hand.get_deck()]
-
-    for k in color_deck:
-        print(k,end=',')
+    return None
 
 
-    print()
+def frequency(lis=[],relative=False,printable=False):
+    if lis:
+        temp={i:0 for i in set(lis)}
+        for i in lis:
+            temp[i]+=1
+        if relative:
+            for i in temp:
+                temp[i]/=len(lis)
+        if printable:
+            for i in sorted(list(temp.keys())):
+                print(i,':', temp[i])
+        return temp
+    return {}
 
-#print([[i[0].get_info(),i[1]] for i in player[0].best_possible_move_set()])
+def average(lis=[],top_perc=None):
+    if lis:
+        if top_perc:
+            new_len=min(len(lis),round(len(lis)*top_perc/100))
+            lis=lis[-1:-1*(new_len+1):-1]
+            return sum(lis)/len(lis)
+        return sum(lis)/len(lis)
 
+    return None
 
-for i in range(1,player_count+1):
-    player[i].set_computer_level(5)
-    #player[i].set_computer_level(i+2)
-#player[1].set_computer_level(5)
-#player[2].set_computer_level(4)
-#player[3].set_computer_level(5)
+mean = average
 
-while main_game.is_move_possible():
-    #os.system('clear')
-    player[0].read_all_moves()
-    #print('Average:',player[0].list_of_possible_scores())
-    print('Average:',player[0].average_of_possible_scores())
-    print('Standard Dev:',player[0].standard_deviation_of_possible_scores())
-    print('Average top 25%:',player[0].average_of_possible_scores(.25))
-    print('Standard Dev top 25%:',player[0].standard_deviation_of_possible_scores(.25))
-    print('Average scores 0 and above:',player[0].average_of_possible_scores(0))
-    print('Standard Dev scores 0 and above:',player[0].standard_deviation_of_possible_scores(0))
-    temp_move =player[0].get_computer_move()
-    print('Computer Move:',temp_move[0].get_info_color(),temp_move[1])
-    #print(player[0].card_hand.get_unique_cards_in_deck())
-    main_game.print_game_board_color()
-    print("Scores:")
+def top_percent_of_list(lis=[], top_perc=100):
+    if top_perc:
+        new_len=min(len(lis),round(len(lis)*top_perc/100))
+        lis=sorted(lis)[::-1]
+        lis=lis[0:new_len]
+        lis=sorted(lis)
 
-    for i in range(0,player_count+1):
-        print('Player',i+1,"\b:",player[i].get_last_score(),"+",player[i].get_score()-player[i].get_last_score(),"=",player[i].get_score())
-    
-    player[0].card_hand.print_readable_deck_color()
-    
-    strx = None
-    while not player[0].place_card_by_str(strx):
-        strx = input("Card/Spot (card, pos) \'2 A4\'> ")
-
-    for i in range(1,player_count+1):
-        move_set = player[i].get_computer_move()
-
-        if len(move_set) > 0:
-            player[i].place_card_on_board(move_set[0],move_set[1])
-        else:
-            if not player[i].card_hand.is_deck_empty():
-                player[i].card_hand.deal_card()
-    main_game.get_cards_not_on_board()
+    return lis
 
 
-main_game.print_game_board_color()
-print("Final Scores:")
+def bottom_percent_of_list(lis=[], bottom_perc=100):
+    if bottom_perc:
+        new_len=min(len(lis),round(len(lis)*bottom_perc/100))
+        lis=sorted(lis)
+        lis=lis[0:new_len]
 
-for i in range(0,player_count+1):
-    print('Player',i+1,"\b:",player[i].get_score())
+    return lis
 
- 
+def std_dev(lis=[], mean_t=None, top_perc = None, samp=False):
+    '''
+    Returns population standard deviation by default
+    '''
+    if mean_t != None:
+        avrg = mean_t
+    else:
+        avrg = average(lis)
+
+    if lis:
+        if top_perc:
+            new_len=min(len(lis),round(len(lis)*top_perc/100))
+            lis=lis[-1:-1*(new_len+1):-1]
+        if not samp:
+            return (sum([(i-avrg)**2 for i in lis])/len(lis))**.5
+        return (sum([(i-avrg)**2 for i in lis])/(len(lis)-1))**.5
+    return None
+
+std_dev_pop = lambda lis: std_dev(lis, samp=False)
+std_dev_samp = lambda lis: std_dev(lis, samp=True)
+variance_pop = lambda lis: std_dev_pop(lis)**2
+variance_samp = lambda lis: std_dev_samp(lis)**2
+
+def z_score(val=None, mean_t=0, std=1, lis=[]):
+    if (val or val == 0) and std != 0:
+        if lis:
+            mean_t = average(lis)
+            std = std_dev(lis,mean_t)
+        return (val-mean_t)/std
+    return None
+
+def norm_pdf(val=None,mean_t=0,std=1,top_perc=None,lis=[]):
+    if (val or val == 0) and std != 0:
+        if lis:
+            if top_perc:
+                new_len=min(len(lis),round(len(lis)*top_perc/100))
+                lis=lis[-1:-1*(new_len+1):-1]
+            mean_t = average(lis)
+            std = std_dev(lis)
+
+        return 1/(std*(2*PI)**.5)*e**(-.5*((val-mean_t)/std)**2)
+
+    return None
+
+def norm_cdf(val=None,mean_t=0,std=1, top_perc=None, lis=[]):
+    '''
+    Calculates the Gaussian culmative distribution via
+    Marsaglia's Taylor series expansion. Not the most efficient,
+    but is accurate up to 7 digits 
+    '''
+    if (val or val == 0) and std != 0:
+        if lis:
+            if top_perc:
+                new_len=min(len(lis),round(len(lis)*top_perc/100))
+                lis=lis[-1:-1*(new_len+1):-1]
+            mean_t = average(lis)
+            std = std_dev(lis,mean_t)
+
+        if not std:
+            return None
+
+        z_score = (val-mean_t)/std
+
+        d=1
+        c=-1
+        sm=0
+        while c<230:
+            c+=2
+            d*=c
+            sm+=(z_score**c)/d
+
+        return round(.5+norm_pdf(z_score)*sm,6)
+
+    return None
+
+       
+
+
+'''
+
+l=[3, 4, 9, 13, 2]
+#print(average(l), std_dev_pop(l), std_dev_samp(l), variance_pop(l), variance_samp(l))
+
+mean = average(l)
+std = std_dev_pop(l)
+low_lim = mean - 3*std
+upp_lim = mean + 3*std
+inter = (upp_lim-low_lim)/100
+
+for i in range(0,100):
+    cur = low_lim+inter*i
+    print(cur,norm_pdf(cur),norm_cdf(cur))
+
+'''
