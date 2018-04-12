@@ -1,8 +1,18 @@
 # King's Court
 
-The original card game by Benjamin Atkerson.
+The original numerical stratergy board game where every move raises the stakes. Carefully place tiles and earn
+giant point combinations, but don't give your opponents the bigger advantage! Play against human or computer in
+this exciting new game with the planning of chess and Scrabble-esque scoring!
 
-### Running the game
+![alt text](https://github.com/dogstarchampion/Kings-Court/raw/master/about/kingscourtpicture.png "King's Court")
+
+### Features
+* Full color gameboard and tile graphics
+* A basic multi-level AI opponent
+* A ruleset complete with visuals and shortcut (Ctrl+H)
+* Move history panel to follow plays made by opponents.
+
+### Running the Game
 
 ```
 Windows users - You'll need to download Python 3 and install pyqt4 and colorama through pip
@@ -13,8 +23,21 @@ Ubuntu 12.04/Debian 7 - run INSTALL as superuser or download python3, python3-py
                         cd into directory and type './run_game.sh'
 ```
 
-I promise to update this soon.
+### To-Do
+* Make move history show board as it was during past plays.
+* Add 11x11 board for bigger games. (valued 1-6, 4 suits, 5 sets)
+* Make rule set clearer.
+* Various polishing.
+* Packaging for Windows and Linux for easier install
 
-Thank you for visiting.
+---
 
-![alt text](https://github.com/dogstarchampion/Kings-Court/raw/master/about/kingscourtpicture.png "King's Court")
+Thank you for visiting and playing my game.
+
+Author: Benjamin Atkerson
+
+Email: [btatkerson@gmail.com](mailto:btatkerson@gmail.com)
+
+Donate: [PayPal](https://www.paypal.me/BAtkerson)
+
+
